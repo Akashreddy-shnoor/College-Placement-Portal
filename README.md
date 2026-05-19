@@ -1,49 +1,55 @@
-# Campus Placement Portal (Landing Page)
+# Campus Placement Portal
 
-This is the landing page for an AI-powered Campus Placement Portal. It's built using React 19, Vite, and React Router.
+This is an AI-powered Campus Placement Portal built using React 19, Vite, and a FastAPI (Python) backend with PostgreSQL.
 
-Right now, only the landing page is implemented. The dashboard layouts are set up in the CSS, but the dashboard views themselves aren't active yet.
+The portal provides an end-to-end recruitment pipeline, featuring an automated AI-driven ATS resume scorer, a student dashboard, and an administrator dashboard.
 
 ## What's Built So Far
 
-* **Header**: Main navigation links (Home, Features, About Us, How It Works, Contact) with Login and Register buttons.
-* **Hero Section**: Big intro banner explaining what the platform does, with quick links and trust badges highlighting key features (ATS scoring, candidate ranking).
-* **Features**: Displays three main services (Resume Upload, ATS scoring feedback, candidate ranking).
-* **How It Works Timeline**: Steps for students from uploading their resume to getting hired.
-* **Stats Banner**: Key metrics like number of registered students, recruiters, and placement rate.
-* **Footer**: Quick links, categories (For Students, For Recruiters), support resources, and social links.
+* **Authentication & Routing**: Secure Login and Registration flow, including Google OAuth integration. Upon successful login, users are automatically routed to either the **Student Dashboard** or **Admin Dashboard** depending on their role.
+* **Landing Page**: Fully responsive landing page with Hero section, Features, Timeline, and quick links.
+* **Student Dashboard**: Includes resume upload with AI ATS scoring feedback, profile editing, and job tracking.
+* **Admin/Recruiter Dashboard**: Allows admins to view registered students, track job postings, shortlist candidates, and manage the hiring pipeline.
+* **Backend Pipeline**: A complete FastAPI backend connecting to a PostgreSQL database, featuring an automated database seeder for initial mockup data, and OpenAI API integration for parsing and scoring PDF resumes.
 
 ## Tech Stack
 
-* **React 19**
-* **Vite**
-* **React Router DOM v7** (routing configuration is set up in `src/App.jsx`)
+### Frontend
+* **React 19** with **Vite**
+* **React Router DOM v7** (routing configuration in `src/App.jsx`)
 * **Lucide React** (icons)
-* **Recharts** (installed for future analytics/dashboard charts)
+* **Recharts** (analytics/dashboard charts)
 * **CSS** (plain custom CSS using variables defined in `src/index.css`)
 
-## Project Structure
-
-* `src/components/layout/`: Common layout items like `PublicHeader.jsx` and `Footer.jsx`. Also contains dashboard CSS templates (`Sidebar.css` and `Header.css`).
-* `src/pages/Landing/`: The landing page component (`LandingPage.jsx` and its CSS).
-* `src/App.jsx`: Handles routing (currently only pointing to the Landing Page).
-* `src/index.css`: Global styles and color variables (primary blue, neutral slate, success green, etc.).
+### Backend
+* **Python 3** with **FastAPI**
+* **PostgreSQL** (Relational Database)
+* **SQLAlchemy** (ORM)
+* **Uvicorn** (ASGI server)
+* **OpenAI API** (ATS Resume Parsing)
 
 ## How to Run It
 
-First, install the dependencies:
-```bash
-npm install
-```
+You will need two terminal windows to run the full application (one for the frontend, one for the backend).
 
-To run the development server:
+### 1. Start the Backend (FastAPI)
+
+Ensure you have your PostgreSQL database running.
+
 ```bash
+cd backend
+pip install -r requirements.txt
+python -m uvicorn app.main:app --reload --port 8000
+```
+*The backend server will run on [http://localhost:8000](http://localhost:8000).*
+
+### 2. Start the Frontend (React + Vite)
+
+Open a new terminal and run:
+
+```bash
+cd frontend
+npm install
 npm run dev
 ```
-
-Open the URL shown in your terminal (usually [http://localhost:5173](http://localhost:5173) or another port if 5173 is occupied).
-
-To compile the project for production:
-```bash
-npm run build
-```
+*Open the URL shown in your terminal (usually [http://localhost:5173](http://localhost:5173)).*
