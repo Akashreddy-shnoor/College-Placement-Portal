@@ -31,10 +31,18 @@ def create_student(db: Session, student: schemas.StudentRegister):
     db.refresh(db_student)
     return db_student
 
-def update_student(db: Session, student: models.Student):
+def update_student(db: Session, student_id: str, updates: schemas.StudentUpdate):
+    db_student = get_student(db, student_id)
+    if not db_student:
+        return None
+    
+    update_data = updates.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_student, key, value)
+        
     db.commit()
-    db.refresh(student)
-    return student
+    db.refresh(db_student)
+    return db_student
 
 # Job CRUD
 def get_job(db: Session, job_id: str):

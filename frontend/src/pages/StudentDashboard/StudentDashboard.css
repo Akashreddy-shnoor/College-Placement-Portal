@@ -501,3 +501,126 @@
 @media (max-width: 480px) {
   .sd-stats-grid { grid-template-columns: 1fr; }
 }
+
+/* ============================================
+   Dynamic Profile Styles
+   ============================================ */
+.sd-profile-container {
+  max-width: 800px;
+}
+.sd-profile-header-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+.sd-profile-header-wrap .sd-page-title {
+  margin-bottom: 0;
+}
+.sd-profile-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+.sd-profile-section {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.02);
+}
+.sd-profile-section h3 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0 0 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.sd-profile-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+@media (max-width: 640px) {
+  .sd-profile-fields-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.sd-section-header-flex {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 12px;
+}
+.sd-section-header-flex h3 {
+  margin: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.sd-add-btn {
+  background: rgba(16,185,129,0.1);
+  color: #10b981;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.sd-add-btn:hover {
+  background: rgba(16,185,129,0.2);
+}
+.sd-array-card {
+  position: relative;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sd-array-card:last-child {
+  margin-bottom: 0;
+}
+.sd-remove-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(239,68,68,0.1);
+  color: #ef4444;
+  border: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.sd-remove-btn:hover {
+  background: rgba(239,68,68,0.2);
+}
+.sd-field-group textarea {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  color: #1e293b;
+  background: #f8fafc;
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  resize: vertical;
+}
+.sd-field-group textarea:focus {
+  border-color: #3b82f6;
+  background: #fff;
+}

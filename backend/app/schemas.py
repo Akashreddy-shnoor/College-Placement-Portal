@@ -28,9 +28,34 @@ class StudentBase(CamelModel):
     username: str
     name: Optional[str] = ""
     email: str
+    
+    # Personal Info
+    roll_number: Optional[str] = Field("", alias="rollNumber")
+    phone_number: Optional[str] = Field("", alias="phoneNumber")
+    department: Optional[str] = ""
+    passout_year: Optional[str] = Field("", alias="passoutYear")
+    dob: Optional[str] = ""
+    profile_picture: Optional[str] = Field("", alias="profilePicture")
+    
+    # Academic Details
+    cgpa: Optional[str] = ""
+    academic_10th: Optional[str] = Field("", alias="academic10th")
+    academic_inter: Optional[str] = Field("", alias="academicInter")
+    current_cgpa: Optional[str] = Field("", alias="currentCgpa")
+    backlogs: Optional[int] = 0
+    semester_details: Optional[List[dict]] = Field(default_factory=list, alias="semesterDetails")
+
+    # Portfolio & Experience
+    projects: Optional[List[dict]] = Field(default_factory=list)
+    certifications: Optional[List[dict]] = Field(default_factory=list)
+    internships: Optional[List[dict]] = Field(default_factory=list)
+
     skills: Optional[str] = ""
 
 class StudentCreate(StudentBase):
+    pass
+
+class StudentUpdate(StudentBase):
     pass
 
 class StudentRegister(StudentBase):

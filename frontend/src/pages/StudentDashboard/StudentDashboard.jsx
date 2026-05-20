@@ -57,14 +57,28 @@ const StudentDashboard = () => {
   const [uploadFile, setUploadFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState('');
-  const [profileForm, setProfileForm] = useState({ name: '', email: '', skills: '' });
+  
+  const initProfile = (u) => ({
+    name: u?.name || '', email: u?.email || '', skills: u?.skills || '',
+    rollNumber: u?.rollNumber || u?.roll_number || '',
+    phoneNumber: u?.phoneNumber || u?.phone_number || '',
+    department: u?.department || '', passoutYear: u?.passoutYear || u?.passout_year || '',
+    dob: u?.dob || '', cgpa: u?.cgpa || '',
+    academic10th: u?.academic10th || u?.academic_10th || '',
+    academicInter: u?.academicInter || u?.academic_inter || '',
+    currentCgpa: u?.currentCgpa || u?.current_cgpa || '',
+    backlogs: u?.backlogs || 0,
+    projects: u?.projects || [], certifications: u?.certifications || [], internships: u?.internships || []
+  });
+  
+  const [profileForm, setProfileForm] = useState(initProfile(null));
   const [profileMsg, setProfileMsg] = useState('');
 
   useEffect(() => {
     const currentUser = JSON.parse(localStorage.getItem('cpp_current_user'));
     if (!currentUser || currentUser.role !== 'student') { navigate('/login'); return; }
     setStudent(currentUser);
-    setProfileForm({ name: currentUser.name || '', email: currentUser.email || '', skills: currentUser.skills || '' });
+    setProfileForm(initProfile(currentUser));
     fetchData(currentUser.id);
   }, [navigate]);
 
@@ -83,7 +97,7 @@ const StudentDashboard = () => {
           const updated = { ...JSON.parse(localStorage.getItem('cpp_current_user')), ...me };
           localStorage.setItem('cpp_current_user', JSON.stringify(updated));
           setStudent(updated);
-          setProfileForm({ name: updated.name || '', email: updated.email || '', skills: updated.skills || '' });
+          setProfileForm(initProfile(updated));
         }
       }
     } catch (e) { console.error(e); }
@@ -93,6 +107,28 @@ const StudentDashboard = () => {
   const handleLogout = () => {
     localStorage.removeItem('cpp_current_user');
     navigate('/');
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/students/${student.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(profileForm)
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        const newUser = { ...student, ...updated };
+        localStorage.setItem('cpp_current_user', JSON.stringify(newUser));
+        setStudent(newUser);
+        setProfileMsg('✅ Profile saved successfully!');
+      } else {
+        setProfileMsg('❌ Failed to save profile.');
+      }
+    } catch (e) {
+      setProfileMsg('❌ Server error.');
+    }
+    setTimeout(() => setProfileMsg(''), 3000);
   };
 
   const handleApplyJob = async (jobId) => {
@@ -301,42 +337,139 @@ const StudentDashboard = () => {
 
       case 'profile':
         return (
-          <div className="sd-content-area">
-            <h2 className="sd-page-title">My Profile</h2>
-            <div className="sd-profile-card">
-              <div className="sd-profile-avatar">{displayName.charAt(0).toUpperCase()}</div>
-              <div className="sd-profile-fields">
-                <div className="sd-field-group">
-                  <label>Full Name</label>
-                  <input type="text" value={profileForm.name} onChange={e => setProfileForm({ ...profileForm, name: e.target.value })} placeholder="Your full name" />
+          <div className="sd-content-area sd-profile-container">
+            <div className="sd-profile-header-wrap">
+              <h2 className="sd-page-title">My Profile</h2>
+              <button className="sd-btn-primary" onClick={handleSaveProfile}>Save Changes</button>
+            </div>
+            {profileMsg && <p className={`sd-profile-msg ${profileMsg.includes('✅') ? 'success' : 'error'}`}>{profileMsg}</p>}
+
+            <div className="sd-profile-grid">
+              {/* Personal Info */}
+              <div className="sd-profile-section">
+                <h3>1. Personal Information</h3>
+                <div className="sd-profile-fields-grid">
+                  <div className="sd-field-group">
+                    <label>Full Name</label>
+                    <input type="text" value={profileForm.name} onChange={e => setProfileForm({ ...profileForm, name: e.target.value })} />
+                  </div>
+                  <div className="sd-field-group">
+                    <label>Email</label>
+                    <input type="email" value={profileForm.email} onChange={e => setProfileForm({ ...profileForm, email: e.target.value })} />
+                  </div>
+                  <div className="sd-field-group">
+                    <label>Roll Number</label>
+                    <input type="text" value={profileForm.rollNumber} onChange={e => setProfileForm({ ...profileForm, rollNumber: e.target.value })} />
+                  </div>
+                  <div className="sd-field-group">
+                    <label>Phone Number</label>
+                    <input type="text" value={profileForm.phoneNumber} onChange={e => setProfileForm({ ...profileForm, phoneNumber: e.target.value })} />
+                  </div>
+                  <div className="sd-field-group">
+                    <label>Department</label>
+                    <input type="text" value={profileForm.department} onChange={e => setProfileForm({ ...profileForm, department: e.target.value })} />
+                  </div>
+                  <div className="sd-field-group">
+                    <label>Passout Year</label>
+                    <input type="text" value={profileForm.passoutYear} onChange={e => setProfileForm({ ...profileForm, passoutYear: e.target.value })} />
+                  </div>
+                  <div className="sd-field-group">
+                    <label>Date of Birth</label>
+                    <input type="date" value={profileForm.dob} onChange={e => setProfileForm({ ...profileForm, dob: e.target.value })} />
+                  </div>
+                  <div className="sd-field-group">
+                    <label>CGPA</label>
+                    <input type="text" value={profileForm.cgpa} onChange={e => setProfileForm({ ...profileForm, cgpa: e.target.value })} />
+                  </div>
                 </div>
-                <div className="sd-field-group">
-                  <label>Email Address</label>
-                  <input type="email" value={profileForm.email} onChange={e => setProfileForm({ ...profileForm, email: e.target.value })} placeholder="your@email.com" />
-                </div>
-                <div className="sd-field-group">
-                  <label>Skills (comma separated)</label>
-                  <input type="text" value={profileForm.skills} onChange={e => setProfileForm({ ...profileForm, skills: e.target.value })} placeholder="React, Python, SQL..." />
-                </div>
-                <div className="sd-field-group">
-                  <label>Username</label>
-                  <input type="text" value={student?.username || ''} readOnly className="sd-input-readonly" />
-                </div>
-                {profileMsg && <p className="sd-profile-msg">{profileMsg}</p>}
-                <button className="sd-btn-primary" onClick={() => {
-                  const updated = { ...student, name: profileForm.name, email: profileForm.email, skills: profileForm.skills };
-                  localStorage.setItem('cpp_current_user', JSON.stringify(updated));
-                  setStudent(updated);
-                  setProfileMsg('✅ Profile updated locally!');
-                  setTimeout(() => setProfileMsg(''), 3000);
-                }}>Save Changes</button>
               </div>
-              <div className="sd-profile-info-cards">
-                <div className="sd-info-card blue"><p className="sd-info-label">ATS Score</p><h3>{atsScore}%</h3></div>
-                <div className="sd-info-card green"><p className="sd-info-label">Applied</p><h3>{appliedJobs.length}</h3></div>
-                <div className="sd-info-card purple"><p className="sd-info-label">Status</p><h3 style={{ fontSize: '1rem' }}>{appStatus}</h3></div>
-                <div className="sd-info-card orange"><p className="sd-info-label">Resume</p><h3 style={{ fontSize: '0.85rem' }}>{resumeName || 'Not uploaded'}</h3></div>
+
+              {/* Academic Details */}
+              <div className="sd-profile-section">
+                <h3>2. Academic Details</h3>
+                <div className="sd-profile-fields-grid">
+                  <div className="sd-field-group">
+                    <label>10th Percentage / CGPA</label>
+                    <input type="text" value={profileForm.academic10th} onChange={e => setProfileForm({ ...profileForm, academic10th: e.target.value })} />
+                  </div>
+                  <div className="sd-field-group">
+                    <label>Intermediate / Diploma</label>
+                    <input type="text" value={profileForm.academicInter} onChange={e => setProfileForm({ ...profileForm, academicInter: e.target.value })} />
+                  </div>
+                  <div className="sd-field-group">
+                    <label>Current B.Tech CGPA</label>
+                    <input type="text" value={profileForm.currentCgpa} onChange={e => setProfileForm({ ...profileForm, currentCgpa: e.target.value })} />
+                  </div>
+                  <div className="sd-field-group">
+                    <label>Active Backlogs</label>
+                    <input type="number" min="0" value={profileForm.backlogs} onChange={e => setProfileForm({ ...profileForm, backlogs: parseInt(e.target.value) || 0 })} />
+                  </div>
+                </div>
               </div>
+
+              {/* Skills */}
+              <div className="sd-profile-section">
+                <h3>3. Skills Section</h3>
+                <div className="sd-field-group">
+                  <label>Add your skills (comma separated)</label>
+                  <input type="text" value={profileForm.skills} onChange={e => setProfileForm({ ...profileForm, skills: e.target.value })} placeholder="e.g. React, Python, SQL" />
+                </div>
+              </div>
+
+              {/* Projects */}
+              <div className="sd-profile-section">
+                <div className="sd-section-header-flex">
+                  <h3>4. Projects Section</h3>
+                  <button className="sd-add-btn" onClick={() => setProfileForm({ ...profileForm, projects: [...profileForm.projects, { name: '', tech: '', desc: '', link: '' }] })}>+ Add Project</button>
+                </div>
+                {profileForm.projects.map((proj, i) => (
+                  <div className="sd-array-card" key={i}>
+                    <button className="sd-remove-btn" onClick={() => setProfileForm({ ...profileForm, projects: profileForm.projects.filter((_, idx) => idx !== i) })}><X size={14} /></button>
+                    <div className="sd-field-group"><label>Project Name</label><input type="text" value={proj.name} onChange={e => { const p = [...profileForm.projects]; p[i].name = e.target.value; setProfileForm({ ...profileForm, projects: p }); }} /></div>
+                    <div className="sd-field-group"><label>Technologies Used</label><input type="text" value={proj.tech} onChange={e => { const p = [...profileForm.projects]; p[i].tech = e.target.value; setProfileForm({ ...profileForm, projects: p }); }} /></div>
+                    <div className="sd-field-group"><label>GitHub Link</label><input type="text" value={proj.link} onChange={e => { const p = [...profileForm.projects]; p[i].link = e.target.value; setProfileForm({ ...profileForm, projects: p }); }} /></div>
+                    <div className="sd-field-group"><label>Description</label><textarea rows="2" value={proj.desc} onChange={e => { const p = [...profileForm.projects]; p[i].desc = e.target.value; setProfileForm({ ...profileForm, projects: p }); }} /></div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Certifications */}
+              <div className="sd-profile-section">
+                <div className="sd-section-header-flex">
+                  <h3>5. Certifications Section</h3>
+                  <button className="sd-add-btn" onClick={() => setProfileForm({ ...profileForm, certifications: [...profileForm.certifications, { name: '', issuer: '', year: '' }] })}>+ Add Cert</button>
+                </div>
+                {profileForm.certifications.map((cert, i) => (
+                  <div className="sd-array-card" key={i}>
+                    <button className="sd-remove-btn" onClick={() => setProfileForm({ ...profileForm, certifications: profileForm.certifications.filter((_, idx) => idx !== i) })}><X size={14} /></button>
+                    <div className="sd-profile-fields-grid">
+                      <div className="sd-field-group"><label>Name</label><input type="text" value={cert.name} onChange={e => { const c = [...profileForm.certifications]; c[i].name = e.target.value; setProfileForm({ ...profileForm, certifications: c }); }} /></div>
+                      <div className="sd-field-group"><label>Issuer</label><input type="text" value={cert.issuer} onChange={e => { const c = [...profileForm.certifications]; c[i].issuer = e.target.value; setProfileForm({ ...profileForm, certifications: c }); }} /></div>
+                      <div className="sd-field-group"><label>Year</label><input type="text" value={cert.year} onChange={e => { const c = [...profileForm.certifications]; c[i].year = e.target.value; setProfileForm({ ...profileForm, certifications: c }); }} /></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Internships */}
+              <div className="sd-profile-section">
+                <div className="sd-section-header-flex">
+                  <h3>6. Internship Experience</h3>
+                  <button className="sd-add-btn" onClick={() => setProfileForm({ ...profileForm, internships: [...profileForm.internships, { company: '', role: '', duration: '', skills: '' }] })}>+ Add Internship</button>
+                </div>
+                {profileForm.internships.map((intern, i) => (
+                  <div className="sd-array-card" key={i}>
+                    <button className="sd-remove-btn" onClick={() => setProfileForm({ ...profileForm, internships: profileForm.internships.filter((_, idx) => idx !== i) })}><X size={14} /></button>
+                    <div className="sd-profile-fields-grid">
+                      <div className="sd-field-group"><label>Company Name</label><input type="text" value={intern.company} onChange={e => { const p = [...profileForm.internships]; p[i].company = e.target.value; setProfileForm({ ...profileForm, internships: p }); }} /></div>
+                      <div className="sd-field-group"><label>Role</label><input type="text" value={intern.role} onChange={e => { const p = [...profileForm.internships]; p[i].role = e.target.value; setProfileForm({ ...profileForm, internships: p }); }} /></div>
+                      <div className="sd-field-group"><label>Duration</label><input type="text" value={intern.duration} onChange={e => { const p = [...profileForm.internships]; p[i].duration = e.target.value; setProfileForm({ ...profileForm, internships: p }); }} /></div>
+                      <div className="sd-field-group"><label>Skills Learned</label><input type="text" value={intern.skills} onChange={e => { const p = [...profileForm.internships]; p[i].skills = e.target.value; setProfileForm({ ...profileForm, internships: p }); }} /></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
             </div>
           </div>
         );

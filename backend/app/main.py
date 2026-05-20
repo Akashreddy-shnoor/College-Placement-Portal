@@ -29,10 +29,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Startup Database Prepopulation Helper
+def auto_migrate(db: Session):
+    # Add new columns gracefully
+    new_columns = [
+        "roll_number VARCHAR DEFAULT ''", "phone_number VARCHAR DEFAULT ''", 
+        "department VARCHAR DEFAULT ''", "passout_year VARCHAR DEFAULT ''", 
+        "dob VARCHAR DEFAULT ''", "profile_picture VARCHAR DEFAULT ''", 
+        "cgpa VARCHAR DEFAULT ''", "academic_10th VARCHAR DEFAULT ''", 
+        "academic_inter VARCHAR DEFAULT ''", "current_cgpa VARCHAR DEFAULT ''", 
+        "backlogs INTEGER DEFAULT 0", "semester_details JSON DEFAULT '[]'", 
+        "projects JSON DEFAULT '[]'", "certifications JSON DEFAULT '[]'", 
+        "internships JSON DEFAULT '[]'"
+    ]
+    for col in new_columns:
+        try:
+            db.execute(f"ALTER TABLE students ADD COLUMN {col}")
+            db.commit()
+        except Exception:
+            db.rollback()
+
 @app.on_event("startup")
 def prepopulate_db():
     db = next(get_db())
+    auto_migrate(db)
     try:
         # Prepopulate Default Students
         default_students = [
@@ -292,6 +311,13 @@ def read_students(db: Session = Depends(get_db)):
 @app.get("/api/students/{student_id}", response_model=schemas.StudentResponse)
 def read_student(student_id: str, db: Session = Depends(get_db)):
     student = crud.get_student(db, student_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+    return student
+
+@app.put("/api/students/{student_id}", response_model=schemas.StudentResponse)
+def update_student_profile(student_id: str, updates: schemas.StudentUpdate, db: Session = Depends(get_db)):
+    student = crud.update_student(db, student_id, updates)
     if not student:
         raise HTTPException(status_code=404, detail="Student profile not found")
     return student
