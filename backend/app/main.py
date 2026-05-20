@@ -54,72 +54,9 @@ def prepopulate_db():
     db = next(get_db())
     auto_migrate(db)
     try:
-        # Prepopulate Default Students
-        default_students = [
-            {
-                "id": "std_1",
-                "username": "student1",
-                "name": "Akash Reddy",
-                "email": "akash.reddy@university.edu",
-                "password": "cpp",
-                "skills": "React JS, JavaScript, Python, SQL",
-                "ats_score": 87,
-                "resume_name": "Akash_Reddy_Resume.pdf",
-                "suggestions": [
-                    "Highlight metrics on React optimization (e.g. 'Optimized render cycles, improving FPS by 18%').",
-                    "Add detailed PostgreSQL DB indices configuration to the database experience.",
-                    "Complete a cloud certification (e.g. AWS Certified Developer) to match top backend vacancies."
-                ]
-            },
-            {
-                "id": "std_2",
-                "username": "priya",
-                "name": "Priya Sharma",
-                "email": "priya.sharma@university.edu",
-                "password": "cpp",
-                "skills": "React JS, HTML5, JavaScript, CSS3",
-                "ats_score": 78,
-                "resume_name": "Priya_Sharma_Frontend.pdf",
-                "suggestions": [
-                    "Integrate structured state-management patterns (Redux/Zustand) in React projects.",
-                    "Quantify your accomplishments (e.g. 'Created pixel-perfect views, reducing UI bugs by 35%').",
-                    "Demonstrate API fetching and asynchronous data handling footprints."
-                ]
-            },
-            {
-                "id": "std_3",
-                "username": "rahul",
-                "name": "Rahul Verma",
-                "email": "rahul.verma@university.edu",
-                "password": "cpp",
-                "skills": "Python, FastAPI, Django, Docker, PostgreSQL",
-                "ats_score": 92,
-                "resume_name": "Rahul_Verma_Backend.pdf",
-                "suggestions": [
-                    "Great database modeling and Docker containerization coverage.",
-                    "Add automated unit-testing pipelines details (e.g. pytest, unitest coverages).",
-                    "Mention asynchronous queues configurations (e.g. Celery, Redis) to target elite vacancies."
-                ]
-            }
-        ]
-
-        for ds in default_students:
-            exist = db.query(models.Student).filter(models.Student.username == ds["username"]).first()
-            if not exist:
-                new_std = models.Student(
-                    id=ds["id"],
-                    username=ds["username"],
-                    name=ds["name"],
-                    email=ds["email"],
-                    password=ds.get("password", "cpp"),
-                    skills=ds["skills"],
-                    ats_score=ds["ats_score"],
-                    resume_name=ds["resume_name"],
-                    suggestions=ds["suggestions"],
-                    applied_jobs=[],
-                    application_status="Under Review"
-                )
-                db.add(new_std)
+        # Delete default demo students from database if they exist to keep it clean
+        default_usernames = ["student1", "priya", "rahul"]
+        db.query(models.Student).filter(models.Student.username.in_(default_usernames)).delete(synchronize_session=False)
 
         # Prepopulate Default Jobs
         default_jobs = [
