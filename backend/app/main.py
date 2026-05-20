@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form, sta
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from typing import List, Optional
 import os
 import urllib.parse
@@ -43,7 +44,7 @@ def auto_migrate(db: Session):
     ]
     for col in new_columns:
         try:
-            db.execute(f"ALTER TABLE students ADD COLUMN {col}")
+            db.execute(text(f"ALTER TABLE students ADD COLUMN {col}"))
             db.commit()
         except Exception:
             db.rollback()
