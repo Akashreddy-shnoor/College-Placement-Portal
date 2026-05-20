@@ -1,46 +1,584 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, GraduationCap } from 'lucide-react';
+import {
+  LayoutDashboard, Users, Briefcase, ClipboardList, BarChart2,
+  TrendingUp, PieChart, FileText, Settings, LogOut, Bell,
+  ChevronDown, GraduationCap, ShieldCheck, Menu, X, Plus, Trash2, Star
+} from 'lucide-react';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, PieChart as RechartsPie, Pie, Cell, Legend
+} from 'recharts';
+import { API_BASE_URL } from '../../config';
 import './AdminDashboard.css';
+
+const ADMIN_NAV = [
+  { icon: LayoutDashboard, label: 'Dashboard', key: 'dashboard' },
+  { icon: Users, label: 'Students', key: 'students' },
+  { icon: Briefcase, label: 'Jobs', key: 'jobs' },
+  { icon: ClipboardList, label: 'Applications', key: 'applications' },
+  { icon: BarChart2, label: 'ATS Scores', key: 'ats' },
+  { icon: TrendingUp, label: 'Rankings', key: 'rankings' },
+  { icon: PieChart, label: 'Analytics', key: 'analytics' },
+  { icon: FileText, label: 'Reports', key: 'reports' },
+  { icon: Settings, label: 'Settings', key: 'settings' },
+];
+
+const SKILLS_DATA = [
+  { name: 'Python', value: 35, color: '#3b82f6' },
+  { name: 'Java', value: 25, color: '#6366f1' },
+  { name: 'SQL', value: 15, color: '#10b981' },
+  { name: 'React', value: 15, color: '#f59e0b' },
+  { name: 'Others', value: 10, color: '#94a3b8' },
+];
+
+const MONTHLY_DATA = [
+  { month: 'Jan', applications: 180 },
+  { month: 'Feb', applications: 240 },
+  { month: 'Mar', applications: 310 },
+  { month: 'Apr', applications: 420 },
+  { month: 'May', applications: 390 },
+  { month: 'Jun', applications: 510 },
+];
+
+const StatusBadge = ({ status }) => {
+  const map = {
+    'Shortlisted': { cls: 'ad-badge-shortlisted', label: 'Shortlisted' },
+    'Under Review': { cls: 'ad-badge-review', label: 'Under Review' },
+    'Applied': { cls: 'ad-badge-applied', label: 'Applied' },
+    'None': { cls: 'ad-badge-none', label: 'Not Applied' },
+  };
+  const { cls, label } = map[status] || map['None'];
+  return <span className={`ad-status-badge ${cls}`}>{label}</span>;
+};
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [admin, setAdmin] = useState(null);
+  const [students, setStudents] = useState([]);
+  const [jobs, setJobs] = useState([]);
+  const [activeNav, setActiveNav] = useState('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [newJob, setNewJob] = useState({ title: '', company: '', location: '', salary: '', requirements: '', description: '' });
+  const [jobMsg, setJobMsg] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    // 1. Authenticate admin user locally from session
     const currentUser = JSON.parse(localStorage.getItem('cpp_current_user'));
-    if (!currentUser || currentUser.role !== 'admin') {
-      navigate('/login');
-      return;
-    }
+    if (!currentUser || currentUser.role !== 'admin') { navigate('/login'); return; }
     setAdmin(currentUser);
+    fetchData();
   }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('cpp_current_user');
-    navigate('/');
+  const fetchData = async () => {
+    try {
+      const [studRes, jobsRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/students`),
+        fetch(`${API_BASE_URL}/api/jobs`)
+      ]);
+      if (studRes.ok) setStudents(await studRes.json());
+      if (jobsRes.ok) setJobs(await jobsRes.json());
+    } catch (e) { console.error(e); }
+    setLoading(false);
   };
 
-  if (!admin) return null;
+  const handleLogout = () => { localStorage.removeItem('cpp_current_user'); navigate('/'); };
 
-  const displayName = admin.username || admin.name || 'Admin';
+  const handleShortlist = async (studentId) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/students/shortlist/${studentId}`, { method: 'POST' });
+      if (res.ok) {
+        const updated = await res.json();
+        setStudents(prev => prev.map(s => s.id === studentId ? { ...s, ...updated } : s));
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const handleAddJob = async (e) => {
+    e.preventDefault();
+    setJobMsg('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/jobs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newJob)
+      });
+      if (res.ok) {
+        const created = await res.json();
+        setJobs(prev => [...prev, created]);
+        setNewJob({ title: '', company: '', location: '', salary: '', requirements: '', description: '' });
+        setJobMsg('✅ Job posted successfully!');
+        setTimeout(() => setJobMsg(''), 3000);
+      }
+    } catch (e) { setJobMsg('❌ Failed to post job.'); }
+  };
+
+  const handleDeleteJob = async (jobId) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/jobs/${jobId}`, { method: 'DELETE' });
+      if (res.ok) setJobs(prev => prev.filter(j => j.id !== jobId));
+    } catch (e) { console.error(e); }
+  };
+
+  const totalApplications = students.reduce((sum, s) => sum + (s.appliedJobs?.length ?? s.applied_jobs?.length ?? 0), 0);
+  const shortlistedCount = students.filter(s => (s.applicationStatus ?? s.application_status) === 'Shortlisted').length;
+
+  const filteredStudents = students.filter(s =>
+    s.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    s.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    s.email?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  if (loading) {
+    return (
+      <div className="ad-loading-wrapper">
+        <div className="ad-spinner"></div>
+        <p>Loading admin dashboard...</p>
+      </div>
+    );
+  }
+
+  const renderContent = () => {
+    switch (activeNav) {
+      case 'dashboard':
+        return (
+          <div className="ad-content-area">
+            {/* Stat Cards */}
+            <div className="ad-stats-grid">
+              <div className="ad-stat-card">
+                <div className="ad-stat-icon blue"><Users size={22} /></div>
+                <div><p className="ad-stat-label">Total Students</p><h3 className="ad-stat-val">{students.length.toLocaleString()}</h3></div>
+              </div>
+              <div className="ad-stat-card">
+                <div className="ad-stat-icon purple"><Briefcase size={22} /></div>
+                <div><p className="ad-stat-label">Total Jobs</p><h3 className="ad-stat-val">{jobs.length.toLocaleString()}</h3></div>
+              </div>
+              <div className="ad-stat-card">
+                <div className="ad-stat-icon green"><ClipboardList size={22} /></div>
+                <div><p className="ad-stat-label">Total Applications</p><h3 className="ad-stat-val">{totalApplications.toLocaleString()}</h3></div>
+              </div>
+              <div className="ad-stat-card">
+                <div className="ad-stat-icon orange"><Star size={22} /></div>
+                <div><p className="ad-stat-label">Shortlisted</p><h3 className="ad-stat-val">{shortlistedCount.toLocaleString()}</h3></div>
+              </div>
+            </div>
+
+            {/* Charts Row */}
+            <div className="ad-charts-row">
+              <div className="ad-chart-panel">
+                <h3 className="ad-panel-title">Applications Overview</h3>
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={MONTHLY_DATA}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#94a3b8' }} />
+                    <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} />
+                    <Tooltip contentStyle={{ borderRadius: 10, border: '1px solid #e2e8f0', fontSize: 12 }} />
+                    <Line type="monotone" dataKey="applications" stroke="#3b82f6" strokeWidth={3} dot={{ fill: '#3b82f6', r: 4 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="ad-chart-panel">
+                <h3 className="ad-panel-title">Top Skills in Demand</h3>
+                <ResponsiveContainer width="100%" height={220}>
+                  <RechartsPie>
+                    <Pie data={SKILLS_DATA} cx="45%" cy="50%" innerRadius={55} outerRadius={90} dataKey="value" paddingAngle={3}>
+                      {SKILLS_DATA.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                    </Pie>
+                    <Legend iconType="circle" iconSize={10} wrapperStyle={{ fontSize: 12 }} />
+                    <Tooltip formatter={(v) => `${v}%`} contentStyle={{ borderRadius: 10, fontSize: 12 }} />
+                  </RechartsPie>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Recent Applications Table */}
+            <div className="ad-table-panel">
+              <div className="ad-table-header">
+                <h3 className="ad-panel-title" style={{ margin: 0 }}>Recent Applications</h3>
+                <button className="ad-view-all-btn" onClick={() => setActiveNav('applications')}>View all applications →</button>
+              </div>
+              <div className="ad-table-wrap">
+                <table className="ad-table">
+                  <thead>
+                    <tr>
+                      <th>Student</th>
+                      <th>Skills / Role</th>
+                      <th>ATS Score</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {students.slice(0, 4).map(s => {
+                      const ats = s.atsScore ?? s.ats_score ?? 0;
+                      const status = s.applicationStatus ?? s.application_status ?? 'None';
+                      return (
+                        <tr key={s.id}>
+                          <td>
+                            <div className="ad-student-cell">
+                              <div className="ad-student-av">{(s.name || s.username || 'S').charAt(0).toUpperCase()}</div>
+                              <div>
+                                <p className="ad-student-name">{s.name || s.username}</p>
+                                <p className="ad-student-email">{s.email}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td><span className="ad-skills-preview">{s.skills?.split(',').slice(0, 2).join(', ') || '—'}</span></td>
+                          <td>
+                            <div className="ad-ats-cell">
+                              <div className="ad-ats-bar-bg">
+                                <div className="ad-ats-bar-fill" style={{ width: `${ats}%`, background: ats >= 80 ? '#10b981' : ats >= 60 ? '#f59e0b' : '#ef4444' }} />
+                              </div>
+                              <span className="ad-ats-pct">{ats}%</span>
+                            </div>
+                          </td>
+                          <td><StatusBadge status={status} /></td>
+                          <td>
+                            <button
+                              className={`ad-shortlist-btn ${status === 'Shortlisted' ? 'ad-shortlist-active' : ''}`}
+                              onClick={() => handleShortlist(s.id)}
+                            >
+                              <Star size={14} /> {status === 'Shortlisted' ? 'Unshortlist' : 'Shortlist'}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'students':
+        return (
+          <div className="ad-content-area">
+            <div className="ad-section-header">
+              <h2 className="ad-page-title">Students ({students.length})</h2>
+              <input
+                className="ad-search-input"
+                placeholder="Search students..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="ad-table-panel">
+              <div className="ad-table-wrap">
+                <table className="ad-table">
+                  <thead>
+                    <tr>
+                      <th>Student</th>
+                      <th>Skills</th>
+                      <th>ATS Score</th>
+                      <th>Resume</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredStudents.map(s => {
+                      const ats = s.atsScore ?? s.ats_score ?? 0;
+                      const status = s.applicationStatus ?? s.application_status ?? 'None';
+                      const resume = s.resumeName ?? s.resume_name ?? '';
+                      return (
+                        <tr key={s.id}>
+                          <td>
+                            <div className="ad-student-cell">
+                              <div className="ad-student-av">{(s.name || s.username || 'S').charAt(0).toUpperCase()}</div>
+                              <div>
+                                <p className="ad-student-name">{s.name || s.username}</p>
+                                <p className="ad-student-email">{s.email}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td><span className="ad-skills-preview">{s.skills || '—'}</span></td>
+                          <td>
+                            <div className="ad-ats-cell">
+                              <div className="ad-ats-bar-bg">
+                                <div className="ad-ats-bar-fill" style={{ width: `${ats}%`, background: ats >= 80 ? '#10b981' : ats >= 60 ? '#f59e0b' : '#ef4444' }} />
+                              </div>
+                              <span className="ad-ats-pct">{ats}%</span>
+                            </div>
+                          </td>
+                          <td><span className="ad-resume-name">{resume || 'Not uploaded'}</span></td>
+                          <td><StatusBadge status={status} /></td>
+                          <td>
+                            <button
+                              className={`ad-shortlist-btn ${status === 'Shortlisted' ? 'ad-shortlist-active' : ''}`}
+                              onClick={() => handleShortlist(s.id)}
+                            >
+                              <Star size={14} /> {status === 'Shortlisted' ? 'Unshortlist' : 'Shortlist'}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'jobs':
+        return (
+          <div className="ad-content-area">
+            <h2 className="ad-page-title">Job Management</h2>
+            <div className="ad-jobs-layout">
+              {/* Add Job Form */}
+              <div className="ad-add-job-panel">
+                <h3>Post New Job</h3>
+                <form className="ad-job-form" onSubmit={handleAddJob}>
+                  {[
+                    { key: 'title', label: 'Job Title', placeholder: 'e.g. Frontend Developer' },
+                    { key: 'company', label: 'Company', placeholder: 'e.g. TechSolutions' },
+                    { key: 'location', label: 'Location', placeholder: 'e.g. Hyderabad (Hybrid)' },
+                    { key: 'salary', label: 'Salary', placeholder: 'e.g. ₹12,00,000 LPA' },
+                    { key: 'requirements', label: 'Requirements', placeholder: 'React, Python, SQL...' },
+                    { key: 'description', label: 'Description', placeholder: 'Brief job description...' },
+                  ].map(({ key, label, placeholder }) => (
+                    <div className="ad-field" key={key}>
+                      <label>{label}</label>
+                      <input
+                        type="text"
+                        placeholder={placeholder}
+                        value={newJob[key]}
+                        onChange={e => setNewJob({ ...newJob, [key]: e.target.value })}
+                        required={key === 'title' || key === 'company' || key === 'requirements'}
+                      />
+                    </div>
+                  ))}
+                  {jobMsg && <p className={`ad-job-msg ${jobMsg.includes('✅') ? 'success' : 'error'}`}>{jobMsg}</p>}
+                  <button type="submit" className="ad-btn-primary"><Plus size={16} /> Post Job</button>
+                </form>
+              </div>
+
+              {/* Jobs List */}
+              <div className="ad-jobs-list-panel">
+                <h3>Active Job Openings ({jobs.length})</h3>
+                <div className="ad-jobs-list">
+                  {jobs.map(job => (
+                    <div className="ad-job-item" key={job.id}>
+                      <div className="ad-job-item-icon"><Briefcase size={18} /></div>
+                      <div className="ad-job-item-info">
+                        <p className="ad-job-item-title">{job.title}</p>
+                        <p className="ad-job-item-company">{job.company} · {job.location}</p>
+                        <p className="ad-job-item-req">{job.requirements}</p>
+                      </div>
+                      <div className="ad-job-item-right">
+                        <span className="ad-job-salary">{job.salary}</span>
+                        <button className="ad-delete-btn" onClick={() => handleDeleteJob(job.id)}><Trash2 size={14} /></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'applications':
+        return (
+          <div className="ad-content-area">
+            <h2 className="ad-page-title">All Applications</h2>
+            <div className="ad-table-panel">
+              <div className="ad-table-wrap">
+                <table className="ad-table">
+                  <thead>
+                    <tr>
+                      <th>Student</th>
+                      <th>Applied Jobs Count</th>
+                      <th>ATS Score</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {students.map(s => {
+                      const ats = s.atsScore ?? s.ats_score ?? 0;
+                      const status = s.applicationStatus ?? s.application_status ?? 'None';
+                      const applied = s.appliedJobs?.length ?? s.applied_jobs?.length ?? 0;
+                      return (
+                        <tr key={s.id}>
+                          <td>
+                            <div className="ad-student-cell">
+                              <div className="ad-student-av">{(s.name || s.username || 'S').charAt(0).toUpperCase()}</div>
+                              <div>
+                                <p className="ad-student-name">{s.name || s.username}</p>
+                                <p className="ad-student-email">{s.email}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td><span className="ad-count-badge">{applied} job{applied !== 1 ? 's' : ''}</span></td>
+                          <td>
+                            <div className="ad-ats-cell">
+                              <div className="ad-ats-bar-bg">
+                                <div className="ad-ats-bar-fill" style={{ width: `${ats}%`, background: ats >= 80 ? '#10b981' : ats >= 60 ? '#f59e0b' : '#ef4444' }} />
+                              </div>
+                              <span className="ad-ats-pct">{ats}%</span>
+                            </div>
+                          </td>
+                          <td><StatusBadge status={status} /></td>
+                          <td>
+                            <button
+                              className={`ad-shortlist-btn ${status === 'Shortlisted' ? 'ad-shortlist-active' : ''}`}
+                              onClick={() => handleShortlist(s.id)}
+                            >
+                              <Star size={14} /> {status === 'Shortlisted' ? 'Unshortlist' : 'Shortlist'}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'ats':
+        const sorted = [...students].sort((a, b) => (b.atsScore ?? b.ats_score ?? 0) - (a.atsScore ?? a.ats_score ?? 0));
+        return (
+          <div className="ad-content-area">
+            <h2 className="ad-page-title">ATS Scores</h2>
+            <div className="ad-ats-list">
+              {sorted.map((s, i) => {
+                const ats = s.atsScore ?? s.ats_score ?? 0;
+                return (
+                  <div className="ad-ats-row" key={s.id}>
+                    <div className="ad-rank-num">#{i + 1}</div>
+                    <div className="ad-student-av">{(s.name || s.username || 'S').charAt(0).toUpperCase()}</div>
+                    <div className="ad-ats-row-info">
+                      <p className="ad-student-name">{s.name || s.username}</p>
+                      <p className="ad-student-email">{s.skills || '—'}</p>
+                    </div>
+                    <div className="ad-ats-cell" style={{ flex: 1, maxWidth: 220 }}>
+                      <div className="ad-ats-bar-bg">
+                        <div className="ad-ats-bar-fill" style={{ width: `${ats}%`, background: ats >= 80 ? '#10b981' : ats >= 60 ? '#f59e0b' : '#ef4444' }} />
+                      </div>
+                    </div>
+                    <span className="ad-ats-score-badge" style={{ background: ats >= 80 ? 'rgba(16,185,129,0.1)' : ats >= 60 ? 'rgba(245,158,11,0.1)' : 'rgba(239,68,68,0.1)', color: ats >= 80 ? '#10b981' : ats >= 60 ? '#f59e0b' : '#ef4444' }}>{ats}%</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+
+      case 'analytics':
+        return (
+          <div className="ad-content-area">
+            <h2 className="ad-page-title">Analytics</h2>
+            <div className="ad-charts-row">
+              <div className="ad-chart-panel">
+                <h3 className="ad-panel-title">Monthly Application Trends</h3>
+                <ResponsiveContainer width="100%" height={260}>
+                  <LineChart data={MONTHLY_DATA}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#94a3b8' }} />
+                    <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} />
+                    <Tooltip contentStyle={{ borderRadius: 10, fontSize: 12 }} />
+                    <Line type="monotone" dataKey="applications" stroke="#3b82f6" strokeWidth={3} dot={{ fill: '#3b82f6', r: 5 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="ad-chart-panel">
+                <h3 className="ad-panel-title">Skills Distribution</h3>
+                <ResponsiveContainer width="100%" height={260}>
+                  <RechartsPie>
+                    <Pie data={SKILLS_DATA} cx="45%" cy="50%" innerRadius={65} outerRadius={100} dataKey="value" paddingAngle={3}>
+                      {SKILLS_DATA.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                    </Pie>
+                    <Legend iconType="circle" iconSize={10} wrapperStyle={{ fontSize: 12 }} />
+                    <Tooltip formatter={(v) => `${v}%`} contentStyle={{ borderRadius: 10, fontSize: 12 }} />
+                  </RechartsPie>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        );
+
+      default:
+        return (
+          <div className="ad-content-area">
+            <div className="ad-coming-soon">
+              <ShieldCheck size={48} />
+              <h3>Coming Soon</h3>
+              <p>This admin module is under development.</p>
+            </div>
+          </div>
+        );
+    }
+  };
 
   return (
-    <div className="simple-dashboard-wrapper">
-      <div className="simple-dashboard-card glass-card">
-        <div className="simple-dashboard-icon-wrapper purple">
-          <GraduationCap className="simple-dashboard-icon" size={32} />
+    <div className="ad-layout">
+      {/* Sidebar */}
+      <aside className={`ad-sidebar ${sidebarOpen ? 'ad-sidebar-open' : ''}`}>
+        <div className="ad-sidebar-logo">
+          <GraduationCap size={28} className="ad-logo-icon" />
+          <div>
+            <h2>Placement Portal</h2>
+            <p>Smart Placements, Bright Futures</p>
+          </div>
         </div>
-        <h1 className="simple-dashboard-title">
-          Welcome back, <span className="gradient-text-purple">{displayName}</span>
-        </h1>
-        <p className="simple-dashboard-subtitle">
-          You are securely signed in as a system administrator.
-        </p>
-        <button className="btn-primary simple-logout-btn purple-btn" onClick={handleLogout}>
-          <LogOut size={18} /> Logout
-        </button>
+
+        <nav className="ad-sidebar-nav">
+          {ADMIN_NAV.map(({ icon: Icon, label, key }) => (
+            <button
+              key={key}
+              className={`ad-nav-item ${activeNav === key ? 'ad-nav-active' : ''}`}
+              onClick={() => { setActiveNav(key); setSidebarOpen(false); }}
+            >
+              <Icon size={19} />
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="ad-sidebar-footer">
+          <button className="ad-nav-item ad-logout-btn" onClick={handleLogout}>
+            <LogOut size={19} /><span>Logout</span>
+          </button>
+          <div className="ad-help-box">
+            <p className="ad-help-title">Need Help?</p>
+            <p className="ad-help-sub">Contact placement cell</p>
+            <button className="ad-contact-btn">Contact Us</button>
+          </div>
+        </div>
+      </aside>
+
+      {sidebarOpen && <div className="ad-overlay" onClick={() => setSidebarOpen(false)} />}
+
+      {/* Main */}
+      <div className="ad-main">
+        <header className="ad-header">
+          <div className="ad-header-left">
+            <button className="ad-hamburger" onClick={() => setSidebarOpen(!sidebarOpen)}>
+              {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
+            <h1 className="ad-header-title">Admin Dashboard</h1>
+          </div>
+          <div className="ad-header-right">
+            <button className="ad-icon-btn"><Bell size={20} /></button>
+            <div className="ad-user-chip">
+              <div className="ad-user-avatar"><ShieldCheck size={18} /></div>
+              <div className="ad-user-info">
+                <span className="ad-user-name">Admin</span>
+                <span className="ad-user-role">Placement Cell</span>
+              </div>
+              <ChevronDown size={16} />
+            </div>
+          </div>
+        </header>
+
+        <main className="ad-page-body">
+          {renderContent()}
+        </main>
       </div>
     </div>
   );
