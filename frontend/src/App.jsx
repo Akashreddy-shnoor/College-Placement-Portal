@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import LandingPage from './pages/Landing/LandingPage';
 import LoginPage from './pages/Login/LoginPage';
+import AdminLoginPage from './pages/Login/AdminLoginPage';
 import RegisterPage from './pages/Register/RegisterPage';
 import StudentDashboard from './pages/StudentDashboard/StudentDashboard';
 import AdminDashboard from './pages/AdminDashboard/AdminDashboard';
@@ -14,6 +15,7 @@ function App() {
         
         {/* Authentication Portal */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/admin/login" element={<AdminLoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         
         {/* Student Portal */}

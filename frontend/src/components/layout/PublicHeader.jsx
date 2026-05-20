@@ -46,7 +46,7 @@ const PublicHeader = () => {
 
         {/* Right Side: Action Buttons */}
         <div className={`public-actions ${isOpen ? 'mobile-open' : ''}`}>
-          <Link to="/login?role=admin" className="admin-btn-link" onClick={() => setIsOpen(false)}>
+          <Link to="/admin/login" className="admin-btn-link" onClick={() => setIsOpen(false)}>
             <button className="btn-admin">Admin</button>
           </Link>
           <Link to="/login" className="login-btn-link" onClick={() => setIsOpen(false)}>
