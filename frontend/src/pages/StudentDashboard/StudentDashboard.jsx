@@ -59,6 +59,7 @@ const StudentDashboard = () => {
   const [uploadMsg, setUploadMsg] = useState('');
   
   const initProfile = (u) => ({
+    username: u?.username || '',
     name: u?.name || '', email: u?.email || '', skills: u?.skills || '',
     rollNumber: u?.rollNumber || u?.roll_number || '',
     phoneNumber: u?.phoneNumber || u?.phone_number || '',
