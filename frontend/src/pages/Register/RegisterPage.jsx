@@ -83,7 +83,7 @@ const RegisterPage = () => {
                 <p>Registration successful! Please click the button below to sign in and enter the AI portal.</p>
               </div>
 
-              <Link to="/login" className="btn-primary signin-btn">
+              <Link to={`/login?username=${encodeURIComponent(formData.username)}`} className="btn-primary signin-btn">
                 Click here to Sign In <ArrowRight size={16} />
               </Link>
             </div>

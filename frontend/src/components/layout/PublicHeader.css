@@ -116,6 +116,23 @@
   gap: var(--spacing-md);
 }
 
+.public-actions .btn-admin {
+  background: transparent;
+  color: #8b5cf6;
+  border: 1px solid #8b5cf6;
+  padding: 8px 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  transition: var(--transition-normal);
+}
+
+.public-actions .btn-admin:hover {
+  background: #8b5cf6;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.4);
+}
+
 .public-actions .btn-outline-glow {
   padding: 8px 20px;
   font-size: 0.9rem;
@@ -185,7 +202,7 @@
     height: auto;
   }
 
-  .login-btn-link, .register-btn-link {
+  .admin-btn-link, .login-btn-link, .register-btn-link {
     width: 100%;
   }
 

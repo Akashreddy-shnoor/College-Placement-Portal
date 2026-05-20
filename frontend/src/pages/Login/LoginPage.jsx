@@ -30,6 +30,19 @@ const LoginPage = () => {
     }
   }, [searchParams, navigate]);
 
+  // Pre-fill credentials based on URL parameters (for Admin login or post-registration redirects)
+  useEffect(() => {
+    const roleParam = searchParams.get('role');
+    const usernameParam = searchParams.get('username');
+    if (roleParam === 'admin') {
+      setUsername('college');
+      setPassword('cpp');
+    } else if (usernameParam) {
+      setUsername(usernameParam);
+      setPassword('');
+    }
+  }, [searchParams]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
