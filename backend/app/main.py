@@ -183,7 +183,7 @@ def register(request: schemas.StudentRegister, db: Session = Depends(get_db)):
 def google_login():
     google_auth_url = "https://accounts.google.com/o/oauth2/v2/auth"
     client_id = os.getenv("GOOGLE_CLIENT_ID")
-    redirect_uri = "http://localhost:8000/api/auth/google/callback"
+    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8000/api/auth/google/callback")
     
     params = {
         "client_id": client_id,
@@ -202,7 +202,7 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
     token_url = "https://oauth2.googleapis.com/token"
     client_id = os.getenv("GOOGLE_CLIENT_ID")
     client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
-    redirect_uri = "http://localhost:8000/api/auth/google/callback"
+    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8000/api/auth/google/callback")
     
     data = {
         "code": code,
@@ -256,7 +256,7 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
         db.refresh(student)
         
     # 4. Redirect browser back to React login page with profile details
-    frontend_url = "http://localhost:5175/login"
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173/login")
     params = {
         "oauth_success": "true",
         "username": student.username,

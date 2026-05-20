@@ -12,6 +12,10 @@ DATABASE_URL = os.getenv(
     "postgresql://postgres:password@localhost:5432/placement_portal"
 )
 
+# Render / Heroku Postgres URLs sometimes start with postgres://, which SQLAlchemy 1.4+ does not support.
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 # Connect engine to PostgreSQL database
 engine = create_engine(DATABASE_URL)
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { GraduationCap, Lock, User, ArrowLeft, Sparkles, AlertCircle } from 'lucide-react';
 import './LoginPage.css';
+import { API_BASE_URL } from '../../config';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -41,7 +42,7 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/api/auth/login', {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
@@ -81,7 +82,7 @@ const LoginPage = () => {
 
   // Google Login Account Triggers
   const handleGoogleClick = () => {
-    window.location.href = 'http://localhost:8000/api/auth/google';
+    window.location.href = `${API_BASE_URL}/api/auth/google`;
   };
 
   return (
