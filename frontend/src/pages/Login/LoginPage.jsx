@@ -91,7 +91,7 @@ const LoginPage = () => {
 
   // Google Login Account Triggers
   const handleGoogleClick = () => {
-    window.location.href = `${API_BASE_URL}/api/auth/google`;
+    window.location.href = `${API_BASE_URL}/api/auth/google?origin=${encodeURIComponent(window.location.origin)}`;
   };
 
   return (

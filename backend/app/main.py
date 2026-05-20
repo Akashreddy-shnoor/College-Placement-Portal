@@ -200,10 +200,13 @@ def register(request: schemas.StudentRegister, db: Session = Depends(get_db)):
 # --- GOOGLE OAUTH 2.0 FLOW ---
 
 @app.get("/api/auth/google")
-def google_login():
+def google_login(origin: Optional[str] = None):
     google_auth_url = "https://accounts.google.com/o/oauth2/v2/auth"
     client_id = os.getenv("GOOGLE_CLIENT_ID")
     redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8000/api/auth/google/callback")
+    
+    # Store dynamic frontend origin in the state parameter
+    state = origin if origin else ""
     
     params = {
         "client_id": client_id,
@@ -211,14 +214,15 @@ def google_login():
         "response_type": "code",
         "scope": "openid email profile",
         "access_type": "offline",
-        "prompt": "select_account"
+        "prompt": "select_account",
+        "state": state
     }
     
     auth_url = f"{google_auth_url}?{urllib.parse.urlencode(params)}"
     return RedirectResponse(auth_url)
 
 @app.get("/api/auth/google/callback")
-async def google_callback(code: str, db: Session = Depends(get_db)):
+async def google_callback(code: str, state: Optional[str] = None, db: Session = Depends(get_db)):
     token_url = "https://oauth2.googleapis.com/token"
     client_id = os.getenv("GOOGLE_CLIENT_ID")
     client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
@@ -277,6 +281,9 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
         
     # 4. Redirect browser back to React login page with profile details
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173/login")
+    if state and (state.startswith("http://") or state.startswith("https://")):
+        frontend_url = state if "/login" in state else f"{state.rstrip('/')}/login"
+
     params = {
         "oauth_success": "true",
         "username": student.username,

@@ -74,6 +74,7 @@ const StudentDashboard = () => {
   
   const [profileForm, setProfileForm] = useState(initProfile(null));
   const [profileMsg, setProfileMsg] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     const currentUser = JSON.parse(localStorage.getItem('cpp_current_user'));
@@ -123,6 +124,7 @@ const StudentDashboard = () => {
         localStorage.setItem('cpp_current_user', JSON.stringify(newUser));
         setStudent(newUser);
         setProfileMsg('✅ Profile saved successfully!');
+        setIsEditing(false);
       } else {
         setProfileMsg('❌ Failed to save profile.');
       }
@@ -341,7 +343,11 @@ const StudentDashboard = () => {
           <div className="sd-content-area sd-profile-container">
             <div className="sd-profile-header-wrap">
               <h2 className="sd-page-title">My Profile</h2>
-              <button className="sd-btn-primary" onClick={handleSaveProfile}>Save Changes</button>
+              {!isEditing ? (
+                <button className="sd-btn-primary" onClick={() => setIsEditing(true)}>Edit Profile</button>
+              ) : (
+                <span className="sd-editing-indicator" style={{ fontSize: '0.85rem', color: '#3b82f6', fontWeight: 700, background: 'rgba(59,130,246,0.1)', padding: '6px 12px', borderRadius: '20px' }}>Editing Mode</span>
+              )}
             </div>
             {profileMsg && <p className={`sd-profile-msg ${profileMsg.includes('✅') ? 'success' : 'error'}`}>{profileMsg}</p>}
 
@@ -352,35 +358,35 @@ const StudentDashboard = () => {
                 <div className="sd-profile-fields-grid">
                   <div className="sd-field-group">
                     <label>Full Name</label>
-                    <input type="text" value={profileForm.name} onChange={e => setProfileForm({ ...profileForm, name: e.target.value })} />
+                    <input type="text" value={profileForm.name} onChange={e => setProfileForm({ ...profileForm, name: e.target.value })} disabled={!isEditing} />
                   </div>
                   <div className="sd-field-group">
                     <label>Email</label>
-                    <input type="email" value={profileForm.email} onChange={e => setProfileForm({ ...profileForm, email: e.target.value })} />
+                    <input type="email" value={profileForm.email} onChange={e => setProfileForm({ ...profileForm, email: e.target.value })} disabled={!isEditing} />
                   </div>
                   <div className="sd-field-group">
                     <label>Roll Number</label>
-                    <input type="text" value={profileForm.rollNumber} onChange={e => setProfileForm({ ...profileForm, rollNumber: e.target.value })} />
+                    <input type="text" value={profileForm.rollNumber} onChange={e => setProfileForm({ ...profileForm, rollNumber: e.target.value })} disabled={!isEditing} />
                   </div>
                   <div className="sd-field-group">
                     <label>Phone Number</label>
-                    <input type="text" value={profileForm.phoneNumber} onChange={e => setProfileForm({ ...profileForm, phoneNumber: e.target.value })} />
+                    <input type="text" value={profileForm.phoneNumber} onChange={e => setProfileForm({ ...profileForm, phoneNumber: e.target.value })} disabled={!isEditing} />
                   </div>
                   <div className="sd-field-group">
                     <label>Department</label>
-                    <input type="text" value={profileForm.department} onChange={e => setProfileForm({ ...profileForm, department: e.target.value })} />
+                    <input type="text" value={profileForm.department} onChange={e => setProfileForm({ ...profileForm, department: e.target.value })} disabled={!isEditing} />
                   </div>
                   <div className="sd-field-group">
                     <label>Passout Year</label>
-                    <input type="text" value={profileForm.passoutYear} onChange={e => setProfileForm({ ...profileForm, passoutYear: e.target.value })} />
+                    <input type="text" value={profileForm.passoutYear} onChange={e => setProfileForm({ ...profileForm, passoutYear: e.target.value })} disabled={!isEditing} />
                   </div>
                   <div className="sd-field-group">
                     <label>Date of Birth</label>
-                    <input type="date" value={profileForm.dob} onChange={e => setProfileForm({ ...profileForm, dob: e.target.value })} />
+                    <input type="date" value={profileForm.dob} onChange={e => setProfileForm({ ...profileForm, dob: e.target.value })} disabled={!isEditing} />
                   </div>
                   <div className="sd-field-group">
                     <label>CGPA</label>
-                    <input type="text" value={profileForm.cgpa} onChange={e => setProfileForm({ ...profileForm, cgpa: e.target.value })} />
+                    <input type="text" value={profileForm.cgpa} onChange={e => setProfileForm({ ...profileForm, cgpa: e.target.value })} disabled={!isEditing} />
                   </div>
                 </div>
               </div>
@@ -391,19 +397,19 @@ const StudentDashboard = () => {
                 <div className="sd-profile-fields-grid">
                   <div className="sd-field-group">
                     <label>10th Percentage / CGPA</label>
-                    <input type="text" value={profileForm.academic10th} onChange={e => setProfileForm({ ...profileForm, academic10th: e.target.value })} />
+                    <input type="text" value={profileForm.academic10th} onChange={e => setProfileForm({ ...profileForm, academic10th: e.target.value })} disabled={!isEditing} />
                   </div>
                   <div className="sd-field-group">
                     <label>Intermediate / Diploma</label>
-                    <input type="text" value={profileForm.academicInter} onChange={e => setProfileForm({ ...profileForm, academicInter: e.target.value })} />
+                    <input type="text" value={profileForm.academicInter} onChange={e => setProfileForm({ ...profileForm, academicInter: e.target.value })} disabled={!isEditing} />
                   </div>
                   <div className="sd-field-group">
                     <label>Current B.Tech CGPA</label>
-                    <input type="text" value={profileForm.currentCgpa} onChange={e => setProfileForm({ ...profileForm, currentCgpa: e.target.value })} />
+                    <input type="text" value={profileForm.currentCgpa} onChange={e => setProfileForm({ ...profileForm, currentCgpa: e.target.value })} disabled={!isEditing} />
                   </div>
                   <div className="sd-field-group">
                     <label>Active Backlogs</label>
-                    <input type="number" min="0" value={profileForm.backlogs} onChange={e => setProfileForm({ ...profileForm, backlogs: parseInt(e.target.value) || 0 })} />
+                    <input type="number" min="0" value={profileForm.backlogs} onChange={e => setProfileForm({ ...profileForm, backlogs: parseInt(e.target.value) || 0 })} disabled={!isEditing} />
                   </div>
                 </div>
               </div>
@@ -413,7 +419,7 @@ const StudentDashboard = () => {
                 <h3>3. Skills Section</h3>
                 <div className="sd-field-group">
                   <label>Add your skills (comma separated)</label>
-                  <input type="text" value={profileForm.skills} onChange={e => setProfileForm({ ...profileForm, skills: e.target.value })} placeholder="e.g. React, Python, SQL" />
+                  <input type="text" value={profileForm.skills} onChange={e => setProfileForm({ ...profileForm, skills: e.target.value })} placeholder="e.g. React, Python, SQL" disabled={!isEditing} />
                 </div>
               </div>
 
@@ -421,15 +427,20 @@ const StudentDashboard = () => {
               <div className="sd-profile-section">
                 <div className="sd-section-header-flex">
                   <h3>4. Projects Section</h3>
-                  <button className="sd-add-btn" onClick={() => setProfileForm({ ...profileForm, projects: [...profileForm.projects, { name: '', tech: '', desc: '', link: '' }] })}>+ Add Project</button>
+                  {isEditing && (
+                    <button className="sd-add-btn" onClick={() => setProfileForm({ ...profileForm, projects: [...profileForm.projects, { name: '', tech: '', desc: '', link: '' }] })}>+ Add Project</button>
+                  )}
                 </div>
+                {profileForm.projects.length === 0 && <p style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>No projects added yet.</p>}
                 {profileForm.projects.map((proj, i) => (
                   <div className="sd-array-card" key={i}>
-                    <button className="sd-remove-btn" onClick={() => setProfileForm({ ...profileForm, projects: profileForm.projects.filter((_, idx) => idx !== i) })}><X size={14} /></button>
-                    <div className="sd-field-group"><label>Project Name</label><input type="text" value={proj.name} onChange={e => { const p = [...profileForm.projects]; p[i].name = e.target.value; setProfileForm({ ...profileForm, projects: p }); }} /></div>
-                    <div className="sd-field-group"><label>Technologies Used</label><input type="text" value={proj.tech} onChange={e => { const p = [...profileForm.projects]; p[i].tech = e.target.value; setProfileForm({ ...profileForm, projects: p }); }} /></div>
-                    <div className="sd-field-group"><label>GitHub Link</label><input type="text" value={proj.link} onChange={e => { const p = [...profileForm.projects]; p[i].link = e.target.value; setProfileForm({ ...profileForm, projects: p }); }} /></div>
-                    <div className="sd-field-group"><label>Description</label><textarea rows="2" value={proj.desc} onChange={e => { const p = [...profileForm.projects]; p[i].desc = e.target.value; setProfileForm({ ...profileForm, projects: p }); }} /></div>
+                    {isEditing && (
+                      <button className="sd-remove-btn" onClick={() => setProfileForm({ ...profileForm, projects: profileForm.projects.filter((_, idx) => idx !== i) })}><X size={14} /></button>
+                    )}
+                    <div className="sd-field-group"><label>Project Name</label><input type="text" value={proj.name} onChange={e => { const p = [...profileForm.projects]; p[i].name = e.target.value; setProfileForm({ ...profileForm, projects: p }); }} disabled={!isEditing} /></div>
+                    <div className="sd-field-group"><label>Technologies Used</label><input type="text" value={proj.tech} onChange={e => { const p = [...profileForm.projects]; p[i].tech = e.target.value; setProfileForm({ ...profileForm, projects: p }); }} disabled={!isEditing} /></div>
+                    <div className="sd-field-group"><label>GitHub Link</label><input type="text" value={proj.link} onChange={e => { const p = [...profileForm.projects]; p[i].link = e.target.value; setProfileForm({ ...profileForm, projects: p }); }} disabled={!isEditing} /></div>
+                    <div className="sd-field-group"><label>Description</label><textarea rows="2" value={proj.desc} onChange={e => { const p = [...profileForm.projects]; p[i].desc = e.target.value; setProfileForm({ ...profileForm, projects: p }); }} disabled={!isEditing} /></div>
                   </div>
                 ))}
               </div>
@@ -438,15 +449,20 @@ const StudentDashboard = () => {
               <div className="sd-profile-section">
                 <div className="sd-section-header-flex">
                   <h3>5. Certifications Section</h3>
-                  <button className="sd-add-btn" onClick={() => setProfileForm({ ...profileForm, certifications: [...profileForm.certifications, { name: '', issuer: '', year: '' }] })}>+ Add Cert</button>
+                  {isEditing && (
+                    <button className="sd-add-btn" onClick={() => setProfileForm({ ...profileForm, certifications: [...profileForm.certifications, { name: '', issuer: '', year: '' }] })}>+ Add Cert</button>
+                  )}
                 </div>
+                {profileForm.certifications.length === 0 && <p style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>No certifications added yet.</p>}
                 {profileForm.certifications.map((cert, i) => (
                   <div className="sd-array-card" key={i}>
-                    <button className="sd-remove-btn" onClick={() => setProfileForm({ ...profileForm, certifications: profileForm.certifications.filter((_, idx) => idx !== i) })}><X size={14} /></button>
+                    {isEditing && (
+                      <button className="sd-remove-btn" onClick={() => setProfileForm({ ...profileForm, certifications: profileForm.certifications.filter((_, idx) => idx !== i) })}><X size={14} /></button>
+                    )}
                     <div className="sd-profile-fields-grid">
-                      <div className="sd-field-group"><label>Name</label><input type="text" value={cert.name} onChange={e => { const c = [...profileForm.certifications]; c[i].name = e.target.value; setProfileForm({ ...profileForm, certifications: c }); }} /></div>
-                      <div className="sd-field-group"><label>Issuer</label><input type="text" value={cert.issuer} onChange={e => { const c = [...profileForm.certifications]; c[i].issuer = e.target.value; setProfileForm({ ...profileForm, certifications: c }); }} /></div>
-                      <div className="sd-field-group"><label>Year</label><input type="text" value={cert.year} onChange={e => { const c = [...profileForm.certifications]; c[i].year = e.target.value; setProfileForm({ ...profileForm, certifications: c }); }} /></div>
+                      <div className="sd-field-group"><label>Name</label><input type="text" value={cert.name} onChange={e => { const c = [...profileForm.certifications]; c[i].name = e.target.value; setProfileForm({ ...profileForm, certifications: c }); }} disabled={!isEditing} /></div>
+                      <div className="sd-field-group"><label>Issuer</label><input type="text" value={cert.issuer} onChange={e => { const c = [...profileForm.certifications]; c[i].issuer = e.target.value; setProfileForm({ ...profileForm, certifications: c }); }} disabled={!isEditing} /></div>
+                      <div className="sd-field-group"><label>Year</label><input type="text" value={cert.year} onChange={e => { const c = [...profileForm.certifications]; c[i].year = e.target.value; setProfileForm({ ...profileForm, certifications: c }); }} disabled={!isEditing} /></div>
                     </div>
                   </div>
                 ))}
@@ -456,22 +472,47 @@ const StudentDashboard = () => {
               <div className="sd-profile-section">
                 <div className="sd-section-header-flex">
                   <h3>6. Internship Experience</h3>
-                  <button className="sd-add-btn" onClick={() => setProfileForm({ ...profileForm, internships: [...profileForm.internships, { company: '', role: '', duration: '', skills: '' }] })}>+ Add Internship</button>
+                  {isEditing && (
+                    <button className="sd-add-btn" onClick={() => setProfileForm({ ...profileForm, internships: [...profileForm.internships, { company: '', role: '', duration: '', skills: '' }] })}>+ Add Internship</button>
+                  )}
                 </div>
+                {profileForm.internships.length === 0 && <p style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>No internships added yet.</p>}
                 {profileForm.internships.map((intern, i) => (
                   <div className="sd-array-card" key={i}>
-                    <button className="sd-remove-btn" onClick={() => setProfileForm({ ...profileForm, internships: profileForm.internships.filter((_, idx) => idx !== i) })}><X size={14} /></button>
+                    {isEditing && (
+                      <button className="sd-remove-btn" onClick={() => setProfileForm({ ...profileForm, internships: profileForm.internships.filter((_, idx) => idx !== i) })}><X size={14} /></button>
+                    )}
                     <div className="sd-profile-fields-grid">
-                      <div className="sd-field-group"><label>Company Name</label><input type="text" value={intern.company} onChange={e => { const p = [...profileForm.internships]; p[i].company = e.target.value; setProfileForm({ ...profileForm, internships: p }); }} /></div>
-                      <div className="sd-field-group"><label>Role</label><input type="text" value={intern.role} onChange={e => { const p = [...profileForm.internships]; p[i].role = e.target.value; setProfileForm({ ...profileForm, internships: p }); }} /></div>
-                      <div className="sd-field-group"><label>Duration</label><input type="text" value={intern.duration} onChange={e => { const p = [...profileForm.internships]; p[i].duration = e.target.value; setProfileForm({ ...profileForm, internships: p }); }} /></div>
-                      <div className="sd-field-group"><label>Skills Learned</label><input type="text" value={intern.skills} onChange={e => { const p = [...profileForm.internships]; p[i].skills = e.target.value; setProfileForm({ ...profileForm, internships: p }); }} /></div>
+                      <div className="sd-field-group"><label>Company Name</label><input type="text" value={intern.company} onChange={e => { const p = [...profileForm.internships]; p[i].company = e.target.value; setProfileForm({ ...profileForm, internships: p }); }} disabled={!isEditing} /></div>
+                      <div className="sd-field-group"><label>Role</label><input type="text" value={intern.role} onChange={e => { const p = [...profileForm.internships]; p[i].role = e.target.value; setProfileForm({ ...profileForm, internships: p }); }} disabled={!isEditing} /></div>
+                      <div className="sd-field-group"><label>Duration</label><input type="text" value={intern.duration} onChange={e => { const p = [...profileForm.internships]; p[i].duration = e.target.value; setProfileForm({ ...profileForm, internships: p }); }} disabled={!isEditing} /></div>
+                      <div className="sd-field-group"><label>Skills Learned</label><input type="text" value={intern.skills} onChange={e => { const p = [...profileForm.internships]; p[i].skills = e.target.value; setProfileForm({ ...profileForm, internships: p }); }} disabled={!isEditing} /></div>
                     </div>
                   </div>
                 ))}
               </div>
 
             </div>
+
+            {isEditing && (
+              <div className="sd-profile-actions-bottom" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px', padding: '16px 20px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                <button 
+                  type="button" 
+                  className="sd-btn-secondary" 
+                  style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#475569', padding: '10px 20px', borderRadius: '8px', fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+                  onClick={() => { setProfileForm(initProfile(student)); setIsEditing(false); }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button" 
+                  className="sd-btn-primary" 
+                  onClick={handleSaveProfile}
+                >
+                  Save Changes
+                </button>
+              </div>
+            )}
           </div>
         );
 
