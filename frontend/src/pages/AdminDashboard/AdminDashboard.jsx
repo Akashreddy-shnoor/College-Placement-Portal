@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Briefcase, ClipboardList, BarChart2,
   TrendingUp, PieChart, FileText, Settings, LogOut, Bell,
-  ChevronDown, GraduationCap, ShieldCheck, Menu, X, Plus, Trash2, Star
+  ChevronDown, GraduationCap, ShieldCheck, Menu, X, Plus, Trash2, Star, Eye
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -59,6 +59,7 @@ const AdminDashboard = () => {
   const [jobs, setJobs] = useState([]);
   const [activeNav, setActiveNav] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [newJob, setNewJob] = useState({ title: '', company: '', location: '', salary: '', requirements: '', description: '' });
   const [jobMsg, setJobMsg] = useState('');
@@ -236,12 +237,17 @@ const AdminDashboard = () => {
                           </td>
                           <td><StatusBadge status={status} /></td>
                           <td>
-                            <button
-                              className={`ad-shortlist-btn ${status === 'Shortlisted' ? 'ad-shortlist-active' : ''}`}
-                              onClick={() => handleShortlist(s.id)}
-                            >
-                              <Star size={14} /> {status === 'Shortlisted' ? 'Unshortlist' : 'Shortlist'}
-                            </button>
+                            <div className="ad-action-btns">
+                              <button
+                                className={`ad-shortlist-btn ${status === 'Shortlisted' ? 'ad-shortlist-active' : ''}`}
+                                onClick={() => handleShortlist(s.id)}
+                              >
+                                <Star size={14} /> {status === 'Shortlisted' ? 'Unshortlist' : 'Shortlist'}
+                              </button>
+                              <button className="ad-view-profile-btn" onClick={() => setSelectedStudent(s)}>
+                                <Eye size={14} /> View
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -306,12 +312,17 @@ const AdminDashboard = () => {
                           <td><span className="ad-resume-name">{resume || 'Not uploaded'}</span></td>
                           <td><StatusBadge status={status} /></td>
                           <td>
-                            <button
-                              className={`ad-shortlist-btn ${status === 'Shortlisted' ? 'ad-shortlist-active' : ''}`}
-                              onClick={() => handleShortlist(s.id)}
-                            >
-                              <Star size={14} /> {status === 'Shortlisted' ? 'Unshortlist' : 'Shortlist'}
-                            </button>
+                            <div className="ad-action-btns">
+                              <button
+                                className={`ad-shortlist-btn ${status === 'Shortlisted' ? 'ad-shortlist-active' : ''}`}
+                                onClick={() => handleShortlist(s.id)}
+                              >
+                                <Star size={14} /> {status === 'Shortlisted' ? 'Unshortlist' : 'Shortlist'}
+                              </button>
+                              <button className="ad-view-profile-btn" onClick={() => setSelectedStudent(s)}>
+                                <Eye size={14} /> View
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -580,6 +591,141 @@ const AdminDashboard = () => {
           {renderContent()}
         </main>
       </div>
+
+      {/* Student Profile Modal */}
+      {selectedStudent && (
+        <div className="ad-modal-overlay" onClick={() => setSelectedStudent(null)}>
+          <div className="ad-modal-content" onClick={e => e.stopPropagation()}>
+            <div className="ad-modal-header">
+              <h2>Student Profile</h2>
+              <button className="ad-modal-close" onClick={() => setSelectedStudent(null)}><X size={20} /></button>
+            </div>
+            
+            <div className="ad-modal-body">
+              <div className="ad-modal-profile-header">
+                <div className="ad-modal-av">{(selectedStudent.name || selectedStudent.username || 'S').charAt(0).toUpperCase()}</div>
+                <div>
+                  <h3>{selectedStudent.name || selectedStudent.username}</h3>
+                  <p>{selectedStudent.email} | {selectedStudent.phone_number || selectedStudent.phoneNumber || 'No phone'}</p>
+                </div>
+                <div className="ad-modal-ats">
+                  <span>ATS Score</span>
+                  <strong>{selectedStudent.atsScore ?? selectedStudent.ats_score ?? 0}%</strong>
+                </div>
+              </div>
+
+              <div className="ad-modal-grid">
+                {/* Academic Details */}
+                <div className="ad-modal-section">
+                  <h4>Academic Details</h4>
+                  <div className="ad-modal-fields">
+                    <div><label>Roll Number</label><p>{selectedStudent.rollNumber || selectedStudent.roll_number || '—'}</p></div>
+                    <div><label>Department</label><p>{selectedStudent.department || '—'}</p></div>
+                    <div><label>Passout Year</label><p>{selectedStudent.passoutYear || selectedStudent.passout_year || '—'}</p></div>
+                    <div><label>Current CGPA</label><p>{selectedStudent.currentCgpa || selectedStudent.current_cgpa || '—'}</p></div>
+                    <div><label>10th Score</label><p>{selectedStudent.academic10th || selectedStudent.academic_10th || '—'}</p></div>
+                    <div><label>Inter Score</label><p>{selectedStudent.academicInter || selectedStudent.academic_inter || '—'}</p></div>
+                    <div><label>Backlogs</label><p>{selectedStudent.backlogs || '0'}</p></div>
+                  </div>
+                </div>
+
+                {/* Skills */}
+                <div className="ad-modal-section">
+                  <h4>Skills</h4>
+                  <div className="ad-modal-skills">
+                    {(selectedStudent.skills || 'No skills added').split(',').map((skill, i) => (
+                      <span key={i} className="ad-skill-tag">{skill.trim()}</span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Projects */}
+                <div className="ad-modal-section">
+                  <h4>Projects</h4>
+                  {(!selectedStudent.projects || selectedStudent.projects.length === 0) ? (
+                    <p className="ad-modal-empty">No projects added.</p>
+                  ) : (
+                    <div className="ad-modal-cards">
+                      {selectedStudent.projects.map((p, i) => (
+                        <div key={i} className="ad-modal-card">
+                          <h5>{p.name}</h5>
+                          <p className="ad-card-tech">{p.tech}</p>
+                          <p className="ad-card-desc">{p.desc}</p>
+                          {p.link && <a href={p.link} target="_blank" rel="noreferrer" className="ad-card-link">View Project</a>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Internships */}
+                <div className="ad-modal-section">
+                  <h4>Internships</h4>
+                  {(!selectedStudent.internships || selectedStudent.internships.length === 0) ? (
+                    <p className="ad-modal-empty">No internships added.</p>
+                  ) : (
+                    <div className="ad-modal-cards">
+                      {selectedStudent.internships.map((int, i) => (
+                        <div key={i} className="ad-modal-card">
+                          <h5>{int.role} at {int.company}</h5>
+                          <p className="ad-card-tech">{int.duration}</p>
+                          <p className="ad-card-desc">{int.skills}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Certifications */}
+                <div className="ad-modal-section">
+                  <h4>Certifications</h4>
+                  {(!selectedStudent.certifications || selectedStudent.certifications.length === 0) ? (
+                    <p className="ad-modal-empty">No certifications added.</p>
+                  ) : (
+                    <div className="ad-modal-cards">
+                      {selectedStudent.certifications.map((c, i) => (
+                        <div key={i} className="ad-modal-card">
+                          <h5>{c.name}</h5>
+                          <p className="ad-card-desc">{c.issuer} - {c.year}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* AI Suggestions */}
+                <div className="ad-modal-section">
+                  <h4>AI Resume Insights</h4>
+                  {(!selectedStudent.suggestions || selectedStudent.suggestions.length === 0) ? (
+                    <p className="ad-modal-empty">No insights available.</p>
+                  ) : (
+                    <ul className="ad-modal-suggestions">
+                      {selectedStudent.suggestions.map((s, i) => (
+                        <li key={i}>{s}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="ad-modal-footer">
+              <button 
+                className={`ad-btn-shortlist-large ${(selectedStudent.applicationStatus ?? selectedStudent.application_status) === 'Shortlisted' ? 'active' : ''}`}
+                onClick={() => {
+                  handleShortlist(selectedStudent.id);
+                  const newStatus = (selectedStudent.applicationStatus ?? selectedStudent.application_status) === 'Shortlisted' ? 'Under Review' : 'Shortlisted';
+                  setSelectedStudent({...selectedStudent, applicationStatus: newStatus});
+                }}
+              >
+                <Star size={18} /> 
+                {(selectedStudent.applicationStatus ?? selectedStudent.application_status) === 'Shortlisted' ? 'Unshortlist Candidate' : 'Shortlist Candidate'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
