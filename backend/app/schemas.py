@@ -15,6 +15,13 @@ class JobBase(CamelModel):
     salary: Optional[str] = ""
     requirements: str
     description: Optional[str] = ""
+    min_cgpa: Optional[str] = Field("0.0", alias="minCgpa")
+    allowed_branches: Optional[str] = Field("", alias="allowedBranches")
+    passout_year: Optional[str] = Field("", alias="passoutYear")
+    deadline: Optional[str] = Field("", alias="deadline")
+    backlogs: Optional[str] = Field("No Backlogs", alias="backlogs")
+    job_type: Optional[str] = Field("Full-time", alias="jobType")
+    status: Optional[str] = Field("Open", alias="status")
 
 class JobCreate(JobBase):
     pass

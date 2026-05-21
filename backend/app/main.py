@@ -48,6 +48,22 @@ def auto_migrate(db: Session):
             db.commit()
         except Exception:
             db.rollback()
+            
+    new_job_columns = [
+        "min_cgpa VARCHAR DEFAULT '0.0'",
+        "allowed_branches VARCHAR DEFAULT ''",
+        "passout_year VARCHAR DEFAULT ''",
+        "deadline VARCHAR DEFAULT ''",
+        "backlogs VARCHAR DEFAULT 'No Backlogs'",
+        "job_type VARCHAR DEFAULT 'Full-time'",
+        "status VARCHAR DEFAULT 'Open'"
+    ]
+    for col in new_job_columns:
+        try:
+            db.execute(text(f"ALTER TABLE jobs ADD COLUMN {col}"))
+            db.commit()
+        except Exception:
+            db.rollback()
 
 @app.on_event("startup")
 def prepopulate_db():
@@ -67,7 +83,14 @@ def prepopulate_db():
                 "location": "Hyderabad (Hybrid)",
                 "salary": "₹14,00,000 LPA",
                 "requirements": "React JS, JavaScript, CSS3, HTML5",
-                "description": "Join our office productivity suite team to craft next-generation responsive experiences."
+                "description": "Join our office productivity suite team to craft next-generation responsive experiences.",
+                "min_cgpa": "7.0",
+                "allowed_branches": "CSE, IT",
+                "passout_year": "2024 - 2026",
+                "deadline": "30 May 2026",
+                "backlogs": "No Backlogs",
+                "job_type": "Full-time",
+                "status": "Open"
             },
             {
                 "id": "job_2",
@@ -76,13 +99,51 @@ def prepopulate_db():
                 "location": "Bengaluru (On-site)",
                 "salary": "₹18,00,000 LPA",
                 "requirements": "Python, Django, PostgreSQL, Docker",
-                "description": "Design secure cloud microservices, automate parsing workflows and manage relational datasets."
+                "description": "Design secure cloud microservices, automate parsing workflows and manage relational datasets.",
+                "min_cgpa": "7.5",
+                "allowed_branches": "CSE, IT",
+                "passout_year": "2024 - 2026",
+                "deadline": "25 May 2026",
+                "backlogs": "1 Allowed",
+                "job_type": "Full-time",
+                "status": "Open"
+            },
+            {
+                "id": "job_3",
+                "title": "SDE",
+                "company": "Shnoor International LLC",
+                "location": "Remote",
+                "salary": "₹6,00,000 LPA",
+                "requirements": "MERN, MongoDB, Express JS, React JS",
+                "description": "Build and maintain modern web applications using the MERN stack.",
+                "min_cgpa": "6.5",
+                "allowed_branches": "CSE, IT, ECE",
+                "passout_year": "2024 - 2026",
+                "deadline": "20 May 2026",
+                "backlogs": "No Backlogs",
+                "job_type": "Full-time",
+                "status": "Closing Soon"
             }
         ]
 
         for dj in default_jobs:
             exist = db.query(models.Job).filter(models.Job.id == dj["id"]).first()
-            if not exist:
+            if exist:
+                # Update existing seed jobs with new metadata fields
+                exist.title = dj["title"]
+                exist.company = dj["company"]
+                exist.location = dj["location"]
+                exist.salary = dj["salary"]
+                exist.requirements = dj["requirements"]
+                exist.description = dj["description"]
+                exist.min_cgpa = dj["min_cgpa"]
+                exist.allowed_branches = dj["allowed_branches"]
+                exist.passout_year = dj["passout_year"]
+                exist.deadline = dj["deadline"]
+                exist.backlogs = dj["backlogs"]
+                exist.job_type = dj["job_type"]
+                exist.status = dj["status"]
+            else:
                 new_job = models.Job(
                     id=dj["id"],
                     title=dj["title"],
@@ -91,7 +152,14 @@ def prepopulate_db():
                     salary=dj["salary"],
                     requirements=dj["requirements"],
                     description=dj["description"],
-                    applicants_count=0
+                    applicants_count=0,
+                    min_cgpa=dj["min_cgpa"],
+                    allowed_branches=dj["allowed_branches"],
+                    passout_year=dj["passout_year"],
+                    deadline=dj["deadline"],
+                    backlogs=dj["backlogs"],
+                    job_type=dj["job_type"],
+                    status=dj["status"]
                 )
                 db.add(new_job)
 
@@ -240,6 +308,13 @@ def read_jobs(db: Session = Depends(get_db)):
 @app.post("/api/jobs", response_model=schemas.JobResponse, status_code=status.HTTP_201_CREATED)
 def create_job(job: schemas.JobCreate, db: Session = Depends(get_db)):
     return crud.create_job(db, job)
+
+@app.put("/api/jobs/{job_id}", response_model=schemas.JobResponse)
+def update_job(job_id: str, job: schemas.JobCreate, db: Session = Depends(get_db)):
+    updated = crud.update_job(db, job_id, job)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Job opening not found")
+    return updated
 
 @app.delete("/api/jobs/{job_id}")
 def delete_job(job_id: str, db: Session = Depends(get_db)):

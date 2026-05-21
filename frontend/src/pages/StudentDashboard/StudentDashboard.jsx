@@ -200,7 +200,6 @@ const StudentDashboard = () => {
               </div>
             </div>
 
-            {/* Stat Cards */}
             <div className="sd-stats-grid">
               <div className="sd-stat-card">
                 <div className="sd-stat-top">
@@ -257,9 +256,8 @@ const StudentDashboard = () => {
               </div>
             </div>
 
-            {/* Bottom 3-col grid */}
             <div className="sd-bottom-grid">
-              {/* Recent Applications */}
+
               <div className="sd-panel">
                 <div className="sd-panel-header">
                   <h3>Recent Applications</h3>
@@ -289,7 +287,6 @@ const StudentDashboard = () => {
                 )}
               </div>
 
-              {/* Recommended Jobs */}
               <div className="sd-panel">
                 <div className="sd-panel-header">
                   <h3>Recommended Jobs</h3>
@@ -313,7 +310,6 @@ const StudentDashboard = () => {
                 )}
               </div>
 
-              {/* AI Suggestions */}
               <div className="sd-panel sd-ai-panel">
                 <div className="sd-panel-header">
                   <h3><Sparkles size={16} style={{ color: '#f59e0b' }} /> AI Suggestions</h3>
@@ -352,7 +348,7 @@ const StudentDashboard = () => {
             {profileMsg && <p className={`sd-profile-msg ${profileMsg.includes('✅') ? 'success' : 'error'}`}>{profileMsg}</p>}
 
             <div className="sd-profile-grid">
-              {/* Personal Info */}
+
               <div className="sd-profile-section">
                 <h3>1. Personal Information</h3>
                 <div className="sd-profile-fields-grid">
@@ -391,7 +387,6 @@ const StudentDashboard = () => {
                 </div>
               </div>
 
-              {/* Academic Details */}
               <div className="sd-profile-section">
                 <h3>2. Academic Details</h3>
                 <div className="sd-profile-fields-grid">
@@ -414,7 +409,6 @@ const StudentDashboard = () => {
                 </div>
               </div>
 
-              {/* Skills */}
               <div className="sd-profile-section">
                 <h3>3. Skills Section</h3>
                 <div className="sd-field-group">
@@ -423,7 +417,6 @@ const StudentDashboard = () => {
                 </div>
               </div>
 
-              {/* Projects */}
               <div className="sd-profile-section">
                 <div className="sd-section-header-flex">
                   <h3>4. Projects Section</h3>
@@ -445,7 +438,6 @@ const StudentDashboard = () => {
                 ))}
               </div>
 
-              {/* Certifications */}
               <div className="sd-profile-section">
                 <div className="sd-section-header-flex">
                   <h3>5. Certifications Section</h3>
@@ -468,7 +460,6 @@ const StudentDashboard = () => {
                 ))}
               </div>
 
-              {/* Internships */}
               <div className="sd-profile-section">
                 <div className="sd-section-header-flex">
                   <h3>6. Internship Experience</h3>
@@ -601,32 +592,92 @@ const StudentDashboard = () => {
               <div className="sd-empty-state"><Briefcase size={48} /><p>No job openings at the moment.</p></div>
             ) : (
               <div className="sd-jobs-grid">
-                {jobs.map(job => (
-                  <div className="sd-job-card" key={job.id}>
-                    <div className="sd-job-card-top">
-                      <div className="sd-job-icon"><Briefcase size={22} /></div>
-                      <div>
-                        <h4 className="sd-job-title">{job.title}</h4>
-                        <p className="sd-job-company">{job.company}</p>
+                {jobs.map(job => {
+                  const isGoogle = job.company?.toLowerCase().includes('google');
+                  const isMicrosoft = job.company?.toLowerCase().includes('microsoft');
+                  const isShnoor = job.company?.toLowerCase().includes('shnoor');
+                  let themeClass = 'default-theme';
+                  if (isGoogle) themeClass = 'google-theme';
+                  else if (isMicrosoft) themeClass = 'microsoft-theme';
+                  else if (isShnoor) themeClass = 'shnoor-theme';
+
+                  const skills = job.requirements ? job.requirements.split(',').map(s => s.trim()).filter(Boolean) : [];
+                  const badgeStatus = job.status || 'Open';
+                  const badgeClass = badgeStatus === 'Open' ? 'badge-open' : 'badge-closing';
+
+                  let displayDeadline = job.deadline;
+                  if (job.deadline && job.deadline.includes('-')) {
+                    try {
+                      const parts = job.deadline.split('-');
+                      const d = new Date(parts[0], parts[1] - 1, parts[2]);
+                      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                      displayDeadline = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+                    } catch(err){}
+                  }
+
+                  return (
+                    <div className={`ad-job-card-new ${themeClass}`} key={job.id} style={{ display: 'flex', flexDirection: 'column', height: '100%', boxSizing: 'border-box' }}>
+
+                      <div className="ad-job-card-header">
+                        <div className="ad-job-card-icon-wrap">
+                          <Briefcase size={20} />
+                        </div>
+                        <div className="ad-job-card-header-main">
+                          <div className="ad-job-card-title-row">
+                            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>{job.title}</h4>
+                          </div>
+                          <p className="ad-job-card-company">{job.company} • {job.location}</p>
+                        </div>
+                        <div className="ad-job-card-salary-wrap">
+                          <span>{job.salary}</span>
+                        </div>
+                      </div>
+
+                      {job.description && (
+                        <p className="ad-job-card-desc" style={{ flexGrow: 1 }}>{job.description}</p>
+                      )}
+
+                      {skills.length > 0 && (
+                        <div className="ad-job-card-skills">
+                          {skills.map((skill, idx) => (
+                            <span key={idx} className="ad-job-skill-tag">{skill}</span>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="ad-job-card-meta-grid" style={{ marginBottom: '16px' }}>
+                        <div className="ad-job-meta-item">
+                          <span className="ad-job-meta-label">Min CGPA</span>
+                          <span className="ad-job-meta-val">{job.minCgpa || job.min_cgpa || '—'}</span>
+                        </div>
+                        <div className="ad-job-meta-item">
+                          <span className="ad-job-meta-label">Branches</span>
+                          <span className="ad-job-meta-val">{job.allowedBranches || job.allowed_branches || '—'}</span>
+                        </div>
+                        <div className="ad-job-meta-item">
+                          <span className="ad-job-meta-label">Passout Year</span>
+                          <span className="ad-job-meta-val">{job.passoutYear || job.passout_year || '—'}</span>
+                        </div>
+                        <div className="ad-job-meta-item">
+                          <span className="ad-job-meta-label">Deadline</span>
+                          <span className="ad-job-meta-val">{displayDeadline || '—'}</span>
+                        </div>
+                        <div className="ad-job-meta-item">
+                          <span className="ad-job-meta-label">Backlogs</span>
+                          <span className="ad-job-meta-val">{job.backlogs || '—'}</span>
+                        </div>
+                      </div>
+
+                      <div style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px dashed #e2e8f0' }}>
+                        {appliedJobs.includes(job.id) ? (
+                          <button className="sd-applied-btn" style={{ width: '100%', cursor: 'not-allowed' }} disabled>✓ Applied</button>
+                        ) : (
+                          <button className="sd-btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => handleApplyJob(job.id)}>Apply Now →</button>
+                        )}
                       </div>
                     </div>
-                    <div className="sd-job-details">
-                      <span>📍 {job.location}</span>
-                      <span>💰 {job.salary}</span>
-                    </div>
-                    <p className="sd-job-desc">{job.description}</p>
-                    <div className="sd-job-tags">
-                      {job.requirements?.split(',').slice(0, 3).map((r, i) => (
-                        <span key={i} className="sd-job-tag">{r.trim()}</span>
-                      ))}
-                    </div>
-                    {appliedJobs.includes(job.id) ? (
-                      <button className="sd-applied-btn" disabled>✓ Applied</button>
-                    ) : (
-                      <button className="sd-btn-primary" onClick={() => handleApplyJob(job.id)}>Apply Now →</button>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -712,7 +763,7 @@ const StudentDashboard = () => {
 
   return (
     <div className="sd-layout">
-      {/* Sidebar */}
+
       <aside className={`sd-sidebar ${sidebarOpen ? 'sd-sidebar-open' : ''}`}>
         <div className="sd-sidebar-logo">
           <GraduationCap size={28} className="sd-logo-icon" />
@@ -748,12 +799,10 @@ const StudentDashboard = () => {
         </div>
       </aside>
 
-      {/* Overlay for mobile */}
       {sidebarOpen && <div className="sd-overlay" onClick={() => setSidebarOpen(false)} />}
 
-      {/* Main */}
       <div className="sd-main">
-        {/* Top Header */}
+
         <header className="sd-header">
           <div className="sd-header-left">
             <button className="sd-hamburger" onClick={() => setSidebarOpen(!sidebarOpen)}>
@@ -774,7 +823,6 @@ const StudentDashboard = () => {
           </div>
         </header>
 
-        {/* Page Content */}
         <main className="sd-page-body">
           {renderContent()}
         </main>
@@ -784,3 +832,4 @@ const StudentDashboard = () => {
 };
 
 export default StudentDashboard;
+

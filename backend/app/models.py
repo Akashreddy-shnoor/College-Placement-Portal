@@ -50,3 +50,12 @@ class Job(Base):
     requirements = Column(Text, default="")
     description = Column(Text, default="")
     applicants_count = Column(Integer, default=0)
+    
+    # Eligibility & Metadata
+    min_cgpa = Column(String, default="0.0")
+    allowed_branches = Column(String, default="")
+    passout_year = Column(String, default="")
+    deadline = Column(String, default="")
+    backlogs = Column(String, default="No Backlogs")
+    job_type = Column(String, default="Full-time")
+    status = Column(String, default="Open")

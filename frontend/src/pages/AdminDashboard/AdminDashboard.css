@@ -9,7 +9,6 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
-/* ---- SIDEBAR ---- */
 .ad-sidebar {
   width: 260px;
   min-width: 260px;
@@ -64,7 +63,6 @@
 }
 .ad-contact-btn:hover { background: #6d28d9; }
 
-/* ---- MAIN ---- */
 .ad-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
 .ad-header {
@@ -98,7 +96,6 @@
 .ad-content-area { max-width: 1200px; }
 .ad-page-title { font-size: 1.6rem; font-weight: 800; color: #1e293b; margin-bottom: 24px; }
 
-/* ---- STAT CARDS ---- */
 .ad-stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-bottom: 24px; }
 .ad-stat-card {
   background: #fff; border: 1px solid #e2e8f0; border-radius: 16px;
@@ -117,12 +114,10 @@
 .ad-stat-label { font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 4px; }
 .ad-stat-val { font-size: 2rem; font-weight: 800; color: #1e293b; margin: 0; line-height: 1; }
 
-/* ---- CHARTS ---- */
 .ad-charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 24px; }
 .ad-chart-panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
 .ad-panel-title { font-size: 1rem; font-weight: 800; color: #1e293b; margin: 0 0 18px; }
 
-/* ---- TABLE PANEL ---- */
 .ad-table-panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
 .ad-table-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; border-bottom: 1px solid #f1f5f9; }
 .ad-view-all-btn { font-size: 0.82rem; font-weight: 700; color: #8b5cf6; background: none; border: none; cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -175,7 +170,6 @@
 .ad-resume-name { font-size: 0.78rem; color: #475569; max-width: 140px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ad-count-badge { font-size: 0.78rem; font-weight: 700; background: rgba(59,130,246,0.08); color: #3b82f6; padding: 3px 10px; border-radius: 20px; }
 
-/* ---- Jobs ---- */
 .ad-section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
 .ad-search-input {
   border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 9px 14px;
@@ -185,18 +179,20 @@
 }
 .ad-search-input:focus { border-color: #8b5cf6; }
 
-.ad-jobs-layout { display: grid; grid-template-columns: 380px 1fr; gap: 20px; }
-.ad-add-job-panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; }
+.ad-jobs-layout { display: grid; grid-template-columns: 480px 1fr; gap: 20px; }
+.ad-add-job-panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
 .ad-add-job-panel h3 { font-size: 1rem; font-weight: 800; color: #1e293b; margin: 0 0 20px; }
 .ad-job-form { display: flex; flex-direction: column; gap: 14px; }
 .ad-field { display: flex; flex-direction: column; gap: 5px; }
 .ad-field label { font-size: 0.78rem; font-weight: 700; color: #475569; }
-.ad-field input {
+.ad-field input, .ad-field select {
   border: 1.5px solid #e2e8f0; border-radius: 9px; padding: 9px 12px;
   font-size: 0.875rem; outline: none; color: #1e293b; background: #f8fafc;
   font-family: 'Plus Jakarta Sans', sans-serif; transition: border-color 0.2s;
+  width: 100%; box-sizing: border-box; min-width: 0;
 }
-.ad-field input:focus { border-color: #8b5cf6; background: #fff; }
+.ad-field input:focus, .ad-field select:focus { border-color: #8b5cf6; background: #fff; }
+.ad-form-row-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .ad-job-msg { font-size: 0.85rem; font-weight: 600; }
 .ad-job-msg.success { color: #10b981; }
 .ad-job-msg.error { color: #ef4444; }
@@ -209,30 +205,60 @@
 }
 .ad-btn-primary:hover { opacity: 0.9; }
 
-.ad-jobs-list-panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; }
+.ad-jobs-list-panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
 .ad-jobs-list-panel h3 { font-size: 1rem; font-weight: 800; color: #1e293b; margin: 0 0 18px; }
-.ad-jobs-list { display: flex; flex-direction: column; gap: 12px; max-height: 520px; overflow-y: auto; }
-.ad-job-item {
-  display: flex; align-items: center; gap: 14px;
-  padding: 14px; border-radius: 12px; border: 1px solid #f1f5f9;
-  background: #f8fafc; transition: background 0.2s;
-}
-.ad-job-item:hover { background: #f1f5f9; }
-.ad-job-item-icon { width: 38px; height: 38px; border-radius: 10px; background: rgba(139,92,246,0.1); color: #8b5cf6; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.ad-job-item-info { flex: 1; min-width: 0; }
-.ad-job-item-title { font-size: 0.875rem; font-weight: 700; color: #1e293b; margin: 0 0 2px; }
-.ad-job-item-company { font-size: 0.75rem; color: #64748b; margin: 0 0 2px; }
-.ad-job-item-req { font-size: 0.72rem; color: #94a3b8; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ad-job-item-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
-.ad-job-salary { font-size: 0.75rem; font-weight: 700; color: #10b981; }
-.ad-delete-btn {
-  background: rgba(239,68,68,0.08); border: none; border-radius: 7px;
-  padding: 5px 8px; color: #ef4444; cursor: pointer; display: flex; align-items: center;
-  transition: background 0.2s;
-}
-.ad-delete-btn:hover { background: rgba(239,68,68,0.16); }
+.ad-jobs-list { display: flex; flex-direction: column; gap: 16px; max-height: 680px; overflow-y: auto; padding-right: 4px; }
 
-/* ---- ATS Ranking ---- */
+.ad-job-card-new {
+  border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; background: #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; flex-shrink: 0;
+}
+.ad-job-card-new:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+}
+
+.google-theme { border-left: 5px solid #10b981; }
+.google-theme .ad-job-card-icon-wrap { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+.microsoft-theme { border-left: 5px solid #8b5cf6; }
+.microsoft-theme .ad-job-card-icon-wrap { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
+.shnoor-theme { border-left: 5px solid #f97316; }
+.shnoor-theme .ad-job-card-icon-wrap { background: rgba(249, 115, 22, 0.1); color: #f97316; }
+.default-theme { border-left: 5px solid #64748b; }
+.default-theme .ad-job-card-icon-wrap { background: rgba(100, 116, 139, 0.1); color: #64748b; }
+
+.ad-job-card-header { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.ad-job-card-icon-wrap { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ad-job-card-header-main { flex: 1; min-width: 0; }
+.ad-job-card-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
+.ad-job-card-title-row h4 { font-size: 0.95rem; font-weight: 800; color: #0f172a; margin: 0; }
+.ad-job-status-badge { font-size: 0.65rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; text-transform: uppercase; margin-right: auto; margin-left: 8px; }
+.badge-open { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+.badge-closing { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+.ad-job-card-company { font-size: 0.8rem; color: #64748b; margin: 3px 0 0 0; }
+.ad-job-card-salary-wrap { text-align: right; font-weight: 800; color: #10b981; font-size: 0.875rem; flex-shrink: 0; }
+
+.ad-job-card-desc { font-size: 0.825rem; color: #475569; line-height: 1.5; margin: 0 0 14px 0; }
+.ad-job-card-skills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.ad-job-skill-tag { font-size: 0.72rem; font-weight: 600; background: #f1f5f9; color: #475569; padding: 3px 10px; border-radius: 6px; transition: all 0.2s; }
+.ad-job-skill-tag:hover { background: #e2e8f0; }
+
+.ad-job-card-meta-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; background: #f8fafc; border-radius: 12px; padding: 10px; margin-bottom: 16px; }
+.ad-job-meta-item { display: flex; flex-direction: column; align-items: center; text-align: center; border-right: 1px solid #e2e8f0; min-width: 0; }
+.ad-job-meta-item:last-child { border-right: none; }
+.ad-job-meta-label { font-size: 0.62rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 2px; }
+.ad-job-meta-val { font-size: 0.75rem; font-weight: 800; color: #334155; width: 100%; box-sizing: border-box; padding: 0 4px; white-space: normal; line-height: 1.3; overflow: visible; word-break: break-word; }
+
+.ad-job-card-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px dashed #e2e8f0; }
+.ad-job-btn-view-applicants { background: transparent; border: 1.5px solid #8b5cf6; color: #8b5cf6; font-size: 0.78rem; font-weight: 700; padding: 6px 14px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; }
+.ad-job-btn-view-applicants:hover { background: rgba(139, 92, 246, 0.08); }
+.ad-job-card-actions-right { display: flex; gap: 8px; }
+.ad-job-btn-edit { background: #f1f5f9; border: none; color: #475569; font-size: 0.78rem; font-weight: 700; padding: 6px 12px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s; }
+.ad-job-btn-edit:hover { background: #e2e8f0; color: #1e293b; }
+.ad-job-btn-delete { background: rgba(239, 68, 68, 0.08); border: none; color: #ef4444; font-size: 0.78rem; font-weight: 700; padding: 6px 12px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s; }
+.ad-job-btn-delete:hover { background: rgba(239, 68, 68, 0.15); }
+
 .ad-ats-list { display: flex; flex-direction: column; gap: 12px; }
 .ad-ats-row {
   background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
@@ -242,19 +268,15 @@
 .ad-ats-row-info { flex: 1; min-width: 0; }
 .ad-ats-score-badge { font-size: 0.85rem; font-weight: 800; padding: 4px 14px; border-radius: 20px; flex-shrink: 0; }
 
-/* ---- Loading ---- */
 .ad-loading-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; gap: 16px; color: #64748b; font-size: 0.9rem; }
 .ad-spinner { width: 40px; height: 40px; border: 3px solid #e2e8f0; border-top-color: #8b5cf6; border-radius: 50%; animation: ad-spin 0.8s linear infinite; }
 @keyframes ad-spin { to { transform: rotate(360deg); } }
 
-/* ---- Coming Soon ---- */
 .ad-coming-soon { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 80px 16px; text-align: center; color: #94a3b8; }
 .ad-coming-soon h3 { font-size: 1.4rem; font-weight: 800; color: #1e293b; margin: 0; }
 
-/* ---- Mobile overlay ---- */
 .ad-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 99; }
 
-/* ---- RESPONSIVE ---- */
 @media (max-width: 1200px) {
   .ad-jobs-layout { grid-template-columns: 1fr; }
 }
@@ -406,7 +428,6 @@
   background: rgba(16,185,129,0.1); border-color: #10b981; color: #10b981;
 }
 
-/* Eye button for tables */
 .ad-action-btns {
   display: flex; align-items: center; gap: 8px;
 }
@@ -418,3 +439,4 @@
   cursor: pointer; transition: all 0.2s; font-family: 'Plus Jakarta Sans', sans-serif;
 }
 .ad-view-profile-btn:hover { background: #e2e8f0; color: #1e293b; }
+

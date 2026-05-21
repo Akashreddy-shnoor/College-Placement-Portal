@@ -60,9 +60,29 @@ def create_job(db: Session, job: schemas.JobCreate):
         salary=job.salary,
         requirements=job.requirements,
         description=job.description,
-        applicants_count=0
+        applicants_count=0,
+        min_cgpa=job.min_cgpa,
+        allowed_branches=job.allowed_branches,
+        passout_year=job.passout_year,
+        deadline=job.deadline,
+        backlogs=job.backlogs,
+        job_type=job.job_type,
+        status=job.status or "Open"
     )
     db.add(db_job)
+    db.commit()
+    db.refresh(db_job)
+    return db_job
+
+def update_job(db: Session, job_id: str, updates: schemas.JobCreate):
+    db_job = get_job(db, job_id)
+    if not db_job:
+        return None
+    
+    update_data = updates.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_job, key, value)
+        
     db.commit()
     db.refresh(db_job)
     return db_job
