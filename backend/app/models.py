@@ -1,4 +1,5 @@
-from sqlalchemy import Column, String, Integer, Text, JSON
+from sqlalchemy import Column, String, Integer, Text, JSON, ForeignKey, DateTime, func
+from sqlalchemy.orm import relationship
 from .database import Base
 
 class Student(Base):
@@ -35,9 +36,23 @@ class Student(Base):
     ats_score = Column(Integer, default=0)
     skills = Column(Text, default="")
     resume_name = Column(String, default="")
+    resume_url = Column(String, default="")  # Cloudinary secure URL for PDF
     suggestions = Column(JSON, default=list) # List of strings containing AI suggestions
     applied_jobs = Column(JSON, default=list) # List of job IDs
     application_status = Column(String, default="None") # None, Applied, Under Review, Shortlisted
+
+    resumes = relationship("Resume", back_populates="student", cascade="all, delete-orphan", order_by="desc(Resume.uploaded_at)")
+
+class Resume(Base):
+    __tablename__ = "resumes"
+
+    id = Column(String, primary_key=True, index=True)
+    student_id = Column(String, ForeignKey("students.id"), nullable=False)
+    name = Column(String, nullable=False)
+    url = Column(String, nullable=False)
+    uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    student = relationship("Student", back_populates="resumes")
 
 class Job(Base):
     __tablename__ = "jobs"

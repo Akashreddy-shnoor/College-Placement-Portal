@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel, Field
 from typing import List, Optional, Union
 
@@ -68,10 +69,18 @@ class StudentUpdate(StudentBase):
 class StudentRegister(StudentBase):
     password: str
 
+class ResumeResponse(CamelModel):
+    id: str
+    name: str
+    url: str = Field("", alias="url")
+    uploaded_at: Optional[datetime] = Field(None, alias="uploadedAt")
+
 class StudentResponse(StudentBase):
     id: str
     ats_score: int = Field(0, alias="atsScore")
     resume_name: str = Field("", alias="resumeName")
+    resume_url: Optional[str] = Field("", alias="resumeUrl")
+    resumes: List[ResumeResponse] = Field(default_factory=list)
     suggestions: List[str] = Field(default_factory=list)
     applied_jobs: List[str] = Field(default_factory=list, alias="appliedJobs")
     application_status: str = Field("None", alias="applicationStatus")

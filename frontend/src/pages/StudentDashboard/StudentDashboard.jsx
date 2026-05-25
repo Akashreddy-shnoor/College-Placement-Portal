@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, User, Upload, BarChart2, Briefcase, ClipboardList,
   Star, FileText, MessageSquare, Settings, LogOut, Bell, ChevronDown,
-  ArrowRight, CheckCircle, TrendingUp, Users, GraduationCap, Sparkles, Menu, X
+  ArrowRight, CheckCircle, TrendingUp, Users, GraduationCap, Sparkles, Menu, X,
+  Download, Eye, MoreVertical, CloudUpload, Maximize2, Minus, Plus, Trash2
 } from 'lucide-react';
 import { API_BASE_URL } from '../../config';
 import './StudentDashboard.css';
@@ -57,7 +58,11 @@ const StudentDashboard = () => {
   const [uploadFile, setUploadFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState('');
-  
+  const [activeResumeId, setActiveResumeId] = useState('');
+  const [previewClosed, setPreviewClosed] = useState(false);
+  const previewSectionRef = useRef(null);
+  const previewIframeRef = useRef(null);
+
   const initProfile = (u) => ({
     username: u?.username || '',
     name: u?.name || '', email: u?.email || '', skills: u?.skills || '',
@@ -84,24 +89,34 @@ const StudentDashboard = () => {
     fetchData(currentUser.id);
   }, [navigate]);
 
+  const fetchStudent = async (studentId) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/students/${studentId}`);
+      if (res.ok) {
+        const me = await res.json();
+        const updated = { ...JSON.parse(localStorage.getItem('cpp_current_user')), ...me };
+        localStorage.setItem('cpp_current_user', JSON.stringify(updated));
+        setStudent(updated);
+        setProfileForm(initProfile(updated));
+        if (updated.resumes?.length) {
+          setActiveResumeId(updated.resumes[0].id);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const fetchData = async (studentId) => {
     try {
-      const [jobsRes, studentsRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/jobs`),
-        fetch(`${API_BASE_URL}/api/students`)
-      ]);
+      const jobsRes = await fetch(`${API_BASE_URL}/api/jobs`);
       if (jobsRes.ok) setJobs(await jobsRes.json());
+      const studentsRes = await fetch(`${API_BASE_URL}/api/students`);
       if (studentsRes.ok) {
         const studs = await studentsRes.json();
         setAllStudents(studs);
-        const me = studs.find(s => s.id === studentId);
-        if (me) {
-          const updated = { ...JSON.parse(localStorage.getItem('cpp_current_user')), ...me };
-          localStorage.setItem('cpp_current_user', JSON.stringify(updated));
-          setStudent(updated);
-          setProfileForm(initProfile(updated));
-        }
       }
+      await fetchStudent(studentId);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
@@ -109,6 +124,25 @@ const StudentDashboard = () => {
   const handleLogout = () => {
     localStorage.removeItem('cpp_current_user');
     navigate('/');
+  };
+
+  const handlePreviewResume = (resumeId) => {
+    setPreviewClosed(false);
+    setActiveResumeId(resumeId);
+    previewSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  const handleClosePreview = () => {
+    setPreviewClosed(true);
+    setActiveResumeId('');
+  };
+
+  const handleFullscreenPreview = () => {
+    const elem = previewIframeRef.current;
+    if (!elem) return;
+    if (elem.requestFullscreen) elem.requestFullscreen();
+    else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+    else if (elem.msRequestFullscreen) elem.msRequestFullscreen();
   };
 
   const handleSaveProfile = async () => {
@@ -156,15 +190,29 @@ const StudentDashboard = () => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/students/${student.id}/resume`, { method: 'POST', body: formData });
       if (res.ok) {
-        const updated = await res.json();
-        const newUser = { ...student, ...updated };
-        localStorage.setItem('cpp_current_user', JSON.stringify(newUser));
-        setStudent(newUser);
-        setUploadMsg('✅ Resume uploaded and analyzed successfully!');
+        setUploadMsg('✅ Resume uploaded successfully!');
         setUploadFile(null);
-      } else { setUploadMsg('❌ Upload failed. Please try again.'); }
+        setPreviewClosed(false);
+        await fetchStudent(student.id);
+      } else {
+        setUploadMsg('❌ Upload failed. Please try again.');
+      }
     } catch (e) { setUploadMsg('❌ Server error. Please check your connection.'); }
     setUploading(false);
+  };
+
+  const handleDeleteResume = async (resumeId) => {
+    if (!student?.id) return;
+    if (!window.confirm("Are you sure you want to delete this resume?")) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/students/${student.id}/resume?resume_id=${resumeId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setUploadMsg('✅ Resume deleted successfully!');
+        await fetchStudent(student.id);
+      } else {
+        setUploadMsg('❌ Failed to delete resume.');
+      }
+    } catch (e) { console.error(e); }
   };
 
   const displayName = student?.name || student?.username || 'Student';
@@ -172,8 +220,17 @@ const StudentDashboard = () => {
   const appliedJobs = student?.appliedJobs ?? student?.applied_jobs ?? [];
   const appStatus = student?.applicationStatus ?? student?.application_status ?? 'None';
   const suggestions = student?.suggestions ?? [];
-  const resumeName = student?.resumeName ?? student?.resume_name ?? '';
+  const resumes = student?.resumes ?? [];
+  const selectedResume = resumes.find(r => r.id === activeResumeId) || null;
+  const resumeName = selectedResume?.name || student?.resumeName || student?.resume_name || '';
+  const resumeUrl = selectedResume ? `${API_BASE_URL}/api/students/${student?.id}/resume/view?resume_id=${selectedResume.id}` : '';
   const profileCompletion = Math.min(100, [student?.name, student?.email, student?.skills, resumeName].filter(Boolean).length * 25);
+
+  useEffect(() => {
+    if (student && resumes.length > 0 && !activeResumeId && !previewClosed) {
+      setActiveResumeId(resumes[0].id);
+    }
+  }, [student, resumes, activeResumeId, previewClosed]);
 
   if (loading) {
     return (
@@ -509,40 +566,129 @@ const StudentDashboard = () => {
 
       case 'upload':
         return (
-          <div className="sd-content-area">
-            <h2 className="sd-page-title">Upload Resume</h2>
-            <div className="sd-upload-card">
-              <div className="sd-upload-icon-area">
-                <Upload size={48} className="sd-upload-big-icon" />
-                <h3>Upload Your Resume</h3>
-                <p>PDF format only. Our AI will parse and score your resume against active job listings.</p>
+          <div className="sd-content-area sd-upload-page">
+            <div className="sd-upload-page-header">
+              <div>
+                <h2 className="sd-page-title" style={{ marginBottom: '4px' }}>Upload Resume</h2>
+                <p className="sd-upload-subtitle">Upload and manage your resumes. You can add multiple resumes and preview them.</p>
               </div>
-              <form className="sd-upload-form" onSubmit={handleResumeUpload}>
-                <label className="sd-file-drop" htmlFor="resume-file">
-                  {uploadFile ? (
-                    <span className="sd-file-name">📄 {uploadFile.name}</span>
-                  ) : (
-                    <span>Click to select PDF resume or drag & drop</span>
-                  )}
-                  <input
-                    id="resume-file"
-                    type="file"
-                    accept=".pdf"
-                    style={{ display: 'none' }}
-                    onChange={e => { setUploadFile(e.target.files[0]); setUploadMsg(''); }}
-                  />
-                </label>
-                {uploadMsg && <p className={`sd-upload-msg ${uploadMsg.includes('✅') ? 'success' : 'error'}`}>{uploadMsg}</p>}
-                <button type="submit" className="sd-btn-primary" disabled={!uploadFile || uploading}>
-                  {uploading ? <><div className="sd-btn-spinner"></div> Analyzing...</> : <><Upload size={16} /> Upload & Analyze</>}
-                </button>
-              </form>
-              {resumeName && (
-                <div className="sd-current-resume">
-                  <FileText size={18} />
-                  <span>Current resume: <strong>{resumeName}</strong></span>
+            </div>
+
+            <div className="sd-upload-two-col">
+              {/* Left Column */}
+              <div className="sd-upload-left-col">
+                {/* Upload New Resume Card */}
+                <div className="sd-upload-new-card">
+                  <h3 className="sd-upload-section-title">Upload New Resume</h3>
+                  <form onSubmit={handleResumeUpload}>
+                    <label
+                      className="sd-upload-dropzone"
+                      htmlFor="resume-file-new"
+                      onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add('sd-dropzone-active'); }}
+                      onDragLeave={e => { e.preventDefault(); e.currentTarget.classList.remove('sd-dropzone-active'); }}
+                      onDrop={e => { e.preventDefault(); e.currentTarget.classList.remove('sd-dropzone-active'); if (e.dataTransfer.files[0]) { setUploadFile(e.dataTransfer.files[0]); setUploadMsg(''); } }}
+                    >
+                      <div className="sd-dropzone-icon-wrap">
+                        <CloudUpload size={40} />
+                      </div>
+                      {uploadFile ? (
+                        <span className="sd-dropzone-filename">📄 {uploadFile.name}</span>
+                      ) : (
+                        <>
+                          <p className="sd-dropzone-text">Drag & drop your resume here</p>
+                          <p className="sd-dropzone-or">or</p>
+                          <span className="sd-browse-files-btn">Browse Files</span>
+                        </>
+                      )}
+                      <input
+                        id="resume-file-new"
+                        type="file"
+                        accept=".pdf,.docx"
+                        style={{ display: 'none' }}
+                        onChange={e => { if (e.target.files[0]) { setUploadFile(e.target.files[0]); setUploadMsg(''); } }}
+                      />
+                    </label>
+                    <p className="sd-dropzone-formats">Supported formats: PDF, DOCX<br/>Max file size: 5MB</p>
+                    {uploadMsg && <p className={`sd-upload-msg ${uploadMsg.includes('✅') ? 'success' : 'error'}`}>{uploadMsg}</p>}
+                    <button type="submit" className="sd-btn-primary sd-upload-submit-btn" disabled={!uploadFile || uploading}>
+                      {uploading ? <><div className="sd-btn-spinner"></div> Uploading...</> : <><Upload size={16} /> Upload Resume</>}
+                    </button>
+                  </form>
                 </div>
-              )}
+
+                {/* My Resumes List */}
+                <div className="sd-my-resumes-card">
+                  <h3 className="sd-upload-section-title">My Resumes</h3>
+                  {resumes.length > 0 ? (
+                    <div className="sd-resume-list">
+                      {resumes.map((resume) => (
+                        <div key={resume.id} className={`sd-resume-list-item ${resume.id === selectedResume?.id ? 'selected' : ''}`}>
+                          <div className="sd-resume-pdf-icon">
+                            <span>PDF</span>
+                          </div>
+                          <div className="sd-resume-list-info">
+                            <p className="sd-resume-list-name">{resume.name}</p>
+                            <p className="sd-resume-list-meta">Uploaded recently</p>
+                          </div>
+                          <div className="sd-resume-list-actions">
+                            <button type="button" onClick={() => handlePreviewResume(resume.id)} className="sd-resume-preview-btn">
+                              <Eye size={14} /> Preview
+                            </button>
+                            <button onClick={() => handleDeleteResume(resume.id)} className="sd-resume-download-btn" style={{ color: '#ef4444', backgroundColor: '#fee2e2' }} title="Delete">
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="sd-empty-state" style={{ padding: '24px 16px' }}>
+                      <FileText size={32} />
+                      <p>No resumes uploaded yet. Upload your first resume above!</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Column: Resume Preview */}
+              <div className="sd-resume-preview-col" ref={previewSectionRef}>
+                <h3 className="sd-upload-section-title">Resume Preview</h3>
+                <div className="sd-resume-preview-container">
+                  {selectedResume ? (
+                    <>
+                      <div className="sd-preview-toolbar">
+                        <div className="sd-preview-toolbar-left">
+                          <FileText size={14} />
+                          <span className="sd-preview-filename">{resumeName}</span>
+                        </div>
+                        <div className="sd-preview-toolbar-right">
+                          <button type="button" onClick={handleClosePreview} className="sd-preview-tool-btn" title="Close preview">
+                            <X size={15} />
+                          </button>
+                          <button type="button" onClick={handleFullscreenPreview} className="sd-preview-tool-btn" title="Open fullscreen">
+                            <Maximize2 size={15} />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="sd-preview-embed-wrap">
+                        <iframe
+                          ref={previewIframeRef}
+                          src={resumeUrl}
+                          title="Resume Preview"
+                          className="sd-preview-iframe"
+                          style={{ border: 'none', width: '100%', height: '100%' }}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="sd-preview-empty">
+                      <FileText size={48} />
+                      <h4>No Preview Available</h4>
+                      <p>Upload a resume to see the preview here</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         );

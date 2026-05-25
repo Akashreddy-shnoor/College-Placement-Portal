@@ -31,7 +31,7 @@ def parse_resume_with_openai(resume_text: str, job_requirements: str) -> dict:
     
     # 1. Automatic mock fallback if API key is not configured
     if not OPENAI_API_KEY or OPENAI_API_KEY.strip() == "" or OPENAI_API_KEY == "your_openai_api_key_here":
-        print("⚠️ OPENAI_API_KEY not set. Using local mock parsing engine...")
+        print("WARNING: OPENAI_API_KEY not set. Using local mock parsing engine...")
         return run_local_mock_parser(resume_text, job_requirements)
 
     try:
@@ -81,7 +81,7 @@ Your response must be a single JSON object. Ensure the format matches this JSON 
         return parsed_result
 
     except Exception as e:
-        print(f"❌ OpenAI Error: {e}. Falling back to mock engine...")
+        print(f"OpenAI Error: {e}. Falling back to mock engine...")
         return run_local_mock_parser(resume_text, job_requirements)
 
 def run_local_mock_parser(resume_text: str, job_requirements: str) -> dict:

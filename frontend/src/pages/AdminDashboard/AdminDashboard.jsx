@@ -117,8 +117,8 @@ const AdminDashboard = () => {
     e.preventDefault();
     setJobMsg('');
     const isEdit = !!editingJob;
-    const url = isEdit 
-      ? `${API_BASE_URL}/api/jobs/${editingJob.id}` 
+    const url = isEdit
+      ? `${API_BASE_URL}/api/jobs/${editingJob.id}`
       : `${API_BASE_URL}/api/jobs`;
     const method = isEdit ? 'PUT' : 'POST';
 
@@ -147,7 +147,7 @@ const AdminDashboard = () => {
       } else {
         setJobMsg(isEdit ? '❌ Failed to update job.' : '❌ Failed to post job.');
       }
-    } catch (e) { 
+    } catch (e) {
       setJobMsg(isEdit ? '❌ Failed to update job.' : '❌ Failed to post job.');
     }
   };
@@ -539,7 +539,7 @@ const AdminDashboard = () => {
                   </div>
 
                   {jobMsg && <p className={`ad-job-msg ${jobMsg.includes('✅') ? 'success' : 'error'}`}>{jobMsg}</p>}
-                  
+
                   <div className="ad-form-actions" style={{ display: 'flex', gap: '10px' }}>
                     <button type="submit" className="ad-btn-primary" style={{ flex: 1 }}>
                       {editingJob ? 'Save Changes' : <><Plus size={16} /> Post Job</>}
@@ -570,7 +570,7 @@ const AdminDashboard = () => {
                     const skills = job.requirements ? job.requirements.split(',').map(s => s.trim()).filter(Boolean) : [];
                     const badgeStatus = job.status || 'Open';
                     const badgeClass = badgeStatus === 'Open' ? 'badge-open' : 'badge-closing';
-                    
+
                     // Format Date to nice text e.g. "30 May 2026"
                     let displayDeadline = job.deadline;
                     if (job.deadline && job.deadline.includes('-')) {
@@ -579,9 +579,9 @@ const AdminDashboard = () => {
                         const d = new Date(parts[0], parts[1] - 1, parts[2]);
                         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
                         displayDeadline = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-                      } catch(err){}
+                      } catch (err) { }
                     }
-                    
+
                     return (
                       <div className={`ad-job-card-new ${themeClass}`} key={job.id}>
 
@@ -873,7 +873,7 @@ const AdminDashboard = () => {
               <h2>Student Profile</h2>
               <button className="ad-modal-close" onClick={() => setSelectedStudent(null)}><X size={20} /></button>
             </div>
-            
+
             <div className="ad-modal-body">
               <div className="ad-modal-profile-header">
                 <div className="ad-modal-av">{(selectedStudent.name || selectedStudent.username || 'S').charAt(0).toUpperCase()}</div>
@@ -978,15 +978,15 @@ const AdminDashboard = () => {
             </div>
 
             <div className="ad-modal-footer">
-              <button 
+              <button
                 className={`ad-btn-shortlist-large ${(selectedStudent.applicationStatus ?? selectedStudent.application_status) === 'Shortlisted' ? 'active' : ''}`}
                 onClick={() => {
                   handleShortlist(selectedStudent.id);
                   const newStatus = (selectedStudent.applicationStatus ?? selectedStudent.application_status) === 'Shortlisted' ? 'Under Review' : 'Shortlisted';
-                  setSelectedStudent({...selectedStudent, applicationStatus: newStatus});
+                  setSelectedStudent({ ...selectedStudent, applicationStatus: newStatus });
                 }}
               >
-                <Star size={18} /> 
+                <Star size={18} />
                 {(selectedStudent.applicationStatus ?? selectedStudent.application_status) === 'Shortlisted' ? 'Unshortlist Candidate' : 'Shortlist Candidate'}
               </button>
             </div>
@@ -1009,7 +1009,7 @@ const AdminDashboard = () => {
                 </div>
                 <button className="ad-modal-close" onClick={() => setSelectedJobApplicants(null)}><X size={20} /></button>
               </div>
-              
+
               <div className="ad-modal-body" style={{ maxHeight: '60vh', overflowY: 'auto', padding: '20px' }}>
                 {applicants.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '40px 20px', color: '#94a3b8' }}>

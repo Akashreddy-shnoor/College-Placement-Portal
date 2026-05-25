@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import List, Optional
@@ -8,9 +8,19 @@ import os
 import urllib.parse
 import uuid
 import httpx
+import cloudinary
+import cloudinary.uploader
 
 from .database import engine, Base, get_db
 from . import models, schemas, crud, parser
+
+# Configure Cloudinary
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+    secure=True
+)
 
 # Auto-generate PostgreSQL database tables on startup
 Base.metadata.create_all(bind=engine)
@@ -40,7 +50,8 @@ def auto_migrate(db: Session):
         "academic_inter VARCHAR DEFAULT ''", "current_cgpa VARCHAR DEFAULT ''", 
         "backlogs INTEGER DEFAULT 0", "semester_details JSON DEFAULT '[]'", 
         "projects JSON DEFAULT '[]'", "certifications JSON DEFAULT '[]'", 
-        "internships JSON DEFAULT '[]'"
+        "internships JSON DEFAULT '[]'",
+        "resume_url VARCHAR DEFAULT ''"
     ]
     for col in new_columns:
         try:
@@ -364,12 +375,11 @@ def apply_job(student_id: str, job_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Invalid Student ID or Job ID")
     return student
 
-# OpenAI PDF Resume Multipart parser Upload
+# Cloudinary PDF Resume Upload
 @app.post("/api/students/{student_id}/resume", response_model=schemas.StudentResponse)
 async def upload_resume(
     student_id: str, 
     file: UploadFile = File(...), 
-    job_id: Optional[str] = Form(None), 
     db: Session = Depends(get_db)
 ):
     student = crud.get_student(db, student_id)
@@ -378,41 +388,89 @@ async def upload_resume(
 
     # 1. Read file bytes
     file_bytes = await file.read()
-    
-    # 2. Extract PDF text
-    raw_text = parser.extract_text_from_pdf(file_bytes)
-    if not raw_text or raw_text.strip() == "":
-        raise HTTPException(status_code=400, detail="Unable to extract text from PDF resume. Check format.")
 
-    # 3. Retrieve target job requirements or use defaults
-    target_reqs = "React JS, JavaScript, Python, SQL, Django, Docker, Node.js"
-    if job_id:
-        job = crud.get_job(db, job_id)
-        if job:
-            target_reqs = job.requirements
+    # 2. Upload resume PDF to Cloudinary for persistent cloud storage
+    try:
+        _, ext = os.path.splitext(file.filename)
+        upload_result = cloudinary.uploader.upload(
+            file_bytes,
+            resource_type="raw",
+            folder="placement_portal/resumes",
+            public_id=f"{student_id}_{uuid.uuid4().hex[:8]}{ext}",
+            overwrite=True,
+            type="upload",
+            access_mode="public"
+        )
+        resume_cloud_url = upload_result.get("secure_url", "")
+    except Exception as e:
+        print(f"Cloudinary upload failed: {e}")
+        resume_cloud_url = ""
 
-    # 4. Analyze resume using OpenAI API agent
-    ai_results = parser.parse_resume_with_openai(raw_text, target_reqs)
-
-    # 5. Commit parsed details to student's DB record
-    student.resume_name = file.filename
-    student.ats_score = ai_results.get("ats_score", 70)
-    student.skills = ai_results.get("extracted_skills", student.skills)
-    student.suggestions = ai_results.get("suggestions", [])
-    
-    # Dynamically extract and assign candidate name and email if available
-    extracted_name = ai_results.get("candidate_name", "")
-    if extracted_name and extracted_name != "Candidate" and extracted_name != student.username.capitalize():
-        student.name = extracted_name
-        
-    extracted_email = ai_results.get("candidate_email", "")
-    if extracted_email and "@" in extracted_email and extracted_email != "email@university.edu":
-        student.email = extracted_email
+    crud.create_student_resume(db, student_id, file.filename, resume_cloud_url)
+    student = crud.get_student(db, student_id)
 
     # Toggle application pipeline status
     if student.application_status == "None":
         student.application_status = "Applied"
+        db.commit()
+        db.refresh(student)
 
-    db.commit()
-    db.refresh(student)
     return student
+
+@app.delete("/api/students/{student_id}/resume", response_model=schemas.StudentResponse)
+def delete_resume(student_id: str, resume_id: Optional[str] = None, db: Session = Depends(get_db)):
+    student = crud.get_student(db, student_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+
+    deleted = crud.delete_student_resume(db, student_id, resume_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Resume not found")
+
+    student = crud.get_student(db, student_id)
+    return student
+
+# Proxy endpoint to serve resume files (bypasses Cloudinary 401 on strict accounts)
+@app.get("/api/students/{student_id}/resume/view")
+async def view_resume(student_id: str, resume_id: Optional[str] = None, db: Session = Depends(get_db)):
+    student = crud.get_student(db, student_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+
+    resume = None
+    if resume_id:
+        resume = crud.get_student_resume(db, student_id, resume_id)
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+    elif student.resume_url:
+        resume = type("R", (), {"name": student.resume_name, "url": student.resume_url})()
+    else:
+        resume_list = crud.get_student_resumes(db, student_id)
+        if resume_list:
+            resume = resume_list[0]
+
+    if not resume or not resume.url:
+        raise HTTPException(status_code=404, detail="No resume uploaded")
+
+    # Fetch the file from Cloudinary using httpx (server-side, bypasses CORS/auth issues)
+    try:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
+            response = await client.get(resume.url)
+            if response.status_code != 200:
+                raise HTTPException(status_code=502, detail="Failed to fetch resume from cloud storage")
+            
+            # Determine content type from filename
+            content_type = "application/pdf"
+            if resume.name and resume.name.lower().endswith(".docx"):
+                content_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            
+            return StreamingResponse(
+                iter([response.content]),
+                media_type=content_type,
+                headers={
+                    "Content-Disposition": f"inline; filename=\"{resume.name or 'resume.pdf'}\"",
+                    "Cache-Control": "public, max-age=3600"
+                }
+            )
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=502, detail=f"Cloud storage error: {str(e)}")

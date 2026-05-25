@@ -12,6 +12,58 @@ def get_student_by_username(db: Session, username: str):
 def get_students(db: Session):
     return db.query(models.Student).all()
 
+def get_student_resumes(db: Session, student_id: str):
+    return db.query(models.Resume).filter(models.Resume.student_id == student_id).order_by(models.Resume.uploaded_at.desc()).all()
+
+def get_student_resume(db: Session, student_id: str, resume_id: str):
+    return db.query(models.Resume).filter(
+        models.Resume.student_id == student_id,
+        models.Resume.id == resume_id
+    ).first()
+
+def create_student_resume(db: Session, student_id: str, resume_name: str, resume_url: str):
+    resume = models.Resume(
+        id="res_" + str(uuid.uuid4())[:8],
+        student_id=student_id,
+        name=resume_name,
+        url=resume_url
+    )
+    db.add(resume)
+    student = get_student(db, student_id)
+    if student:
+        student.resume_name = resume_name
+        student.resume_url = resume_url
+    db.commit()
+    db.refresh(resume)
+    if student:
+        db.refresh(student)
+    return resume
+
+def delete_student_resume(db: Session, student_id: str, resume_id: str = None):
+    query = db.query(models.Resume).filter(models.Resume.student_id == student_id)
+    if resume_id:
+        query = query.filter(models.Resume.id == resume_id)
+    resume = query.order_by(models.Resume.uploaded_at.desc()).first()
+    if not resume:
+        return None
+
+    db.delete(resume)
+    db.commit()
+
+    student = get_student(db, student_id)
+    remaining = get_student_resumes(db, student_id)
+    if student:
+        if remaining:
+            student.resume_name = remaining[0].name
+            student.resume_url = remaining[0].url
+        else:
+            student.resume_name = ""
+            student.resume_url = ""
+        db.commit()
+        db.refresh(student)
+
+    return resume
+
 def create_student(db: Session, student: schemas.StudentRegister):
     db_student = models.Student(
         id="std_" + str(uuid.uuid4())[:8],
