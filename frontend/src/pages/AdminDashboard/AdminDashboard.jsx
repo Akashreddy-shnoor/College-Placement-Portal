@@ -864,7 +864,14 @@ const AdminDashboard = () => {
                               <div className="apv-action-row">
                                 <button
                                   className="apv-profile-btn"
-                                  onClick={() => setSelectedStudent({ id: app.studentId, name: app.studentName, email: app.studentEmail, applicationStatus: app.status, skills: app.studentSkills })}
+                                  onClick={() => {
+                                    const fullStudent = students.find(s => s.id === app.studentId);
+                                    if (fullStudent) {
+                                      setSelectedStudent({ ...fullStudent, applicationStatus: app.status });
+                                    } else {
+                                      setSelectedStudent({ id: app.studentId, name: app.studentName, email: app.studentEmail, applicationStatus: app.status, skills: app.studentSkills });
+                                    }
+                                  }}
                                 >
                                   <Eye size={13} /> Profile
                                 </button>
