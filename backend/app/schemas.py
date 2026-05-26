@@ -85,6 +85,30 @@ class StudentResponse(StudentBase):
     applied_jobs: List[str] = Field(default_factory=list, alias="appliedJobs")
     application_status: str = Field("None", alias="applicationStatus")
 
+class ApplicationBase(CamelModel):
+    student_id: str = Field(..., alias="studentId")
+    job_id: str = Field(..., alias="jobId")
+    resume_id: str = Field(..., alias="resumeId")
+    status: Optional[str] = Field("Applied")
+
+class ApplicationCreate(ApplicationBase):
+    pass
+
+class ApplicationResponse(CamelModel):
+    id: str
+    student_id: str = Field(..., alias="studentId")
+    job_id: str = Field(..., alias="jobId")
+    resume_id: str = Field(..., alias="resumeId")
+    resume_name: str = Field("", alias="resumeName")
+    resume_url: str = Field("", alias="resumeUrl")
+    status: str = Field("Applied")
+    student_name: str = Field("", alias="studentName")
+    student_email: str = Field("", alias="studentEmail")
+    student_cgpa: Optional[str] = Field("", alias="studentCgpa")
+    student_department: Optional[str] = Field("", alias="studentDepartment")
+    student_roll_number: Optional[str] = Field("", alias="studentRollNumber")
+    applied_at: Optional[datetime] = Field(None, alias="appliedAt")
+
 # Auth Schemas
 class LoginRequest(BaseModel):
     username: str

@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Briefcase, ClipboardList, BarChart2,
   TrendingUp, PieChart, FileText, Settings, LogOut, Bell,
-  ChevronDown, GraduationCap, ShieldCheck, Menu, X, Plus, Trash2, Star, Eye, Pencil
+  ChevronDown, GraduationCap, ShieldCheck, Menu, X, Plus, Trash2, Star, Eye, Pencil,
+  ArrowLeft, MapPin, DollarSign, Calendar, Building2, CheckCircle2, Clock, FileSearch
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -46,6 +47,7 @@ const StatusBadge = ({ status }) => {
     'Shortlisted': { cls: 'ad-badge-shortlisted', label: 'Shortlisted' },
     'Under Review': { cls: 'ad-badge-review', label: 'Under Review' },
     'Applied': { cls: 'ad-badge-applied', label: 'Applied' },
+    'Rejected': { cls: 'ad-badge-rejected', label: 'Rejected' },
     'None': { cls: 'ad-badge-none', label: 'Not Applied' },
   };
   const { cls, label } = map[status] || map['None'];
@@ -76,8 +78,13 @@ const AdminDashboard = () => {
   });
   const [editingJob, setEditingJob] = useState(null);
   const [selectedJobApplicants, setSelectedJobApplicants] = useState(null);
+  const [jobApplicants, setJobApplicants] = useState([]);
+  const [applicantsLoading, setApplicantsLoading] = useState(false);
+  const [applicantsView, setApplicantsView] = useState(false);
+  const [jobSearchQuery, setJobSearchQuery] = useState('');
   const [jobMsg, setJobMsg] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [previewResumeUrl, setPreviewResumeUrl] = useState(null);
 
   useEffect(() => {
     const currentUser = JSON.parse(localStorage.getItem('cpp_current_user'));
@@ -100,15 +107,46 @@ const AdminDashboard = () => {
 
   const handleLogout = () => { localStorage.removeItem('cpp_current_user'); navigate('/'); };
 
-  const handleShortlist = async (studentId) => {
+  const handleShortlist = async (studentId, jobId = null) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/students/shortlist/${studentId}`, { method: 'POST' });
+      const url = jobId
+        ? `${API_BASE_URL}/api/students/shortlist/${studentId}?job_id=${jobId}`
+        : `${API_BASE_URL}/api/students/shortlist/${studentId}`;
+      const res = await fetch(url, { method: 'POST' });
       if (res.ok) {
         const updated = await res.json();
         setStudents(prev => prev.map(s => s.id === studentId ? { ...s, ...updated } : s));
         if (selectedStudent && selectedStudent.id === studentId) {
           setSelectedStudent(prev => ({ ...prev, ...updated }));
         }
+        if (jobId) {
+          // Only toggle the specific row in the applicants table
+          setJobApplicants(prev => prev.map(app =>
+            app.studentId === studentId && app.jobId === jobId
+              ? { ...app, status: app.status === 'Shortlisted' ? 'Applied' : 'Shortlisted' }
+              : app
+          ));
+        } else {
+          const newStatus = updated.applicationStatus ?? updated.application_status ?? 'Applied';
+          setJobApplicants(prev => prev.map(app =>
+            app.studentId === studentId ? { ...app, status: newStatus } : app
+          ));
+        }
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const handleStatusChange = async (applicationId, newStatus) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/applications/${applicationId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (res.ok) {
+        setJobApplicants(prev => prev.map(app =>
+          app.id === applicationId ? { ...app, status: newStatus } : app
+        ));
       }
     } catch (e) { console.error(e); }
   };
@@ -186,6 +224,41 @@ const AdminDashboard = () => {
     } catch (e) { console.error(e); }
   };
 
+  const fetchJobApplicants = async (jobId) => {
+    setApplicantsLoading(true);
+    setJobApplicants([]);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/jobs/${jobId}/applicants`);
+      if (res.ok) {
+        const data = await res.json();
+        setJobApplicants(data);
+        // Sync the real count back into the jobs list so the card badge matches
+        setJobs(prev => prev.map(j =>
+          j.id === jobId ? { ...j, applicantsCount: data.length, applicants_count: data.length } : j
+        ));
+      } else {
+        setJobApplicants([]);
+      }
+    } catch (e) {
+      console.error(e);
+      setJobApplicants([]);
+    }
+    setApplicantsLoading(false);
+  };
+
+  useEffect(() => {
+    if (activeNav !== 'applications') {
+      setApplicantsView(false);
+      setSelectedJobApplicants(null);
+    } else {
+      // Re-fetch jobs so applicant counts are always live when entering Applications tab
+      fetch(`${API_BASE_URL}/api/jobs`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data) setJobs(data); })
+        .catch(() => {});
+    }
+  }, [activeNav]);
+
   const totalApplications = students.reduce((sum, s) => sum + (s.appliedJobs?.length ?? s.applied_jobs?.length ?? 0), 0);
   const shortlistedCount = students.filter(s => (s.applicationStatus ?? s.application_status) === 'Shortlisted').length;
 
@@ -194,6 +267,14 @@ const AdminDashboard = () => {
     s.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const filteredJobs = jobs.filter(job => {
+    const query = jobSearchQuery.toLowerCase();
+    return (
+      job.company?.toLowerCase().includes(query) ||
+      job.title?.toLowerCase().includes(query)
+    );
+  });
 
   if (loading) {
     return (
@@ -638,7 +719,10 @@ const AdminDashboard = () => {
                         <div className="ad-job-card-footer">
                           <button
                             className="ad-job-btn-view-applicants"
-                            onClick={() => setSelectedJobApplicants(job)}
+                            onClick={() => {
+                              setSelectedJobApplicants(job);
+                              fetchJobApplicants(job.id);
+                            }}
                           >
                             <Users size={14} /> View Applicants
                           </button>
@@ -667,62 +751,232 @@ const AdminDashboard = () => {
         );
 
       case 'applications':
-        return (
-          <div className="ad-content-area">
-            <h2 className="ad-page-title">All Applications</h2>
-            <div className="ad-table-panel">
-              <div className="ad-table-wrap">
-                <table className="ad-table">
-                  <thead>
-                    <tr>
-                      <th>Student</th>
-                      <th>Applied Jobs Count</th>
-                      <th>ATS Score</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {students.map(s => {
-                      const ats = s.atsScore ?? s.ats_score ?? 0;
-                      const status = s.applicationStatus ?? s.application_status ?? 'None';
-                      const applied = s.appliedJobs?.length ?? s.applied_jobs?.length ?? 0;
-                      return (
-                        <tr key={s.id}>
-                          <td>
-                            <div className="ad-student-cell">
-                              <div className="ad-student-av">{(s.name || s.username || 'S').charAt(0).toUpperCase()}</div>
-                              <div>
-                                <p className="ad-student-name">{s.name || s.username}</p>
-                                <p className="ad-student-email">{s.email}</p>
+        if (applicantsView && selectedJobApplicants) {
+          return (
+            <div className="apv-fullscreen">
+              {/* Back + Header */}
+              <div className="apv-topbar">
+                <button
+                  className="apv-back-btn"
+                  onClick={() => { setApplicantsView(false); setSelectedJobApplicants(null); }}
+                >
+                  <ArrowLeft size={18} />
+                  <span>All Jobs</span>
+                </button>
+                <div className="apv-job-info">
+                  <div className={`apv-job-icon ${getJobTheme(selectedJobApplicants.company)}`}>
+                    <Building2 size={20} />
+                  </div>
+                  <div>
+                    <h2 className="apv-job-title">{selectedJobApplicants.title}</h2>
+                    <p className="apv-job-meta">
+                      {selectedJobApplicants.company}
+                      {selectedJobApplicants.location && <><span className="apv-dot">•</span><MapPin size={13} />{selectedJobApplicants.location}</>}
+                      {selectedJobApplicants.salary && <><span className="apv-dot">•</span>{selectedJobApplicants.salary}</>}
+                    </p>
+                  </div>
+                </div>
+                <div className="apv-header-stats">
+                  <div className="apv-stat-pill">
+                    <Users size={15} />
+                    <span>{applicantsLoading ? '...' : jobApplicants.length} Applicant{jobApplicants.length !== 1 ? 's' : ''}</span>
+                  </div>
+                  <div className="apv-stat-pill green">
+                    <CheckCircle2 size={15} />
+                    <span>{jobApplicants.filter(a => a.status === 'Shortlisted').length} Shortlisted</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Applicants Table */}
+              <div className="apv-table-container">
+                {applicantsLoading ? (
+                  <div className="apv-loading-state">
+                    <div className="ad-spinner" />
+                    <p>Loading applicants...</p>
+                  </div>
+                ) : jobApplicants.length === 0 ? (
+                  <div className="apv-empty-state">
+                    <FileSearch size={56} strokeWidth={1.2} />
+                    <h3>No Applicants Yet</h3>
+                    <p>No students have applied for <strong>{selectedJobApplicants.title}</strong> at {selectedJobApplicants.company}.</p>
+                  </div>
+                ) : (
+                  <table className="apv-table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Applicant</th>
+                        <th>Status</th>
+                        <th>Resume</th>
+                        <th>Applied On</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {jobApplicants.map((app, idx) => {
+                        const status = app.status || 'Applied';
+                        const resumeUrl = app.resumeUrl || app.resume_url || app.resume?.url || '';
+                        const statusColor = {
+                          'Applied': '#3b82f6',
+                          'Under Review': '#f59e0b',
+                          'Shortlisted': '#10b981',
+                          'Rejected': '#ef4444'
+                        }[status] || '#94a3b8';
+                        return (
+                          <tr key={app.id} className={status === 'Shortlisted' ? 'apv-row-shortlisted' : ''}>
+                            <td className="apv-td-idx">{idx + 1}</td>
+                            <td>
+                              <div className="apv-applicant-cell">
+                                <div className="apv-avatar">{(app.studentName || 'A').charAt(0).toUpperCase()}</div>
+                                <div>
+                                  <p className="apv-name">{app.studentName || '—'}</p>
+                                  <p className="apv-email">{app.studentEmail || '—'}</p>
+                                </div>
                               </div>
-                            </div>
-                          </td>
-                          <td><span className="ad-count-badge">{applied} job{applied !== 1 ? 's' : ''}</span></td>
-                          <td>
-                            <div className="ad-ats-cell">
-                              <div className="ad-ats-bar-bg">
-                                <div className="ad-ats-bar-fill" style={{ width: `${ats}%`, background: ats >= 80 ? '#10b981' : ats >= 60 ? '#f59e0b' : '#ef4444' }} />
+                            </td>
+                            <td>
+                              <select
+                                className="apv-status-select"
+                                value={status}
+                                onChange={e => handleStatusChange(app.id, e.target.value)}
+                                style={{ borderColor: statusColor, color: statusColor }}
+                              >
+                                <option value="Applied">Applied</option>
+                                <option value="Under Review">Under Review</option>
+                                <option value="Shortlisted">Shortlisted</option>
+                                <option value="Rejected">Rejected</option>
+                              </select>
+                            </td>
+                            <td>
+                              {resumeUrl ? (
+                                <button onClick={() => setPreviewResumeUrl(resumeUrl)} className="apv-resume-btn">
+                                  <Eye size={13} /> View
+                                </button>
+                              ) : (
+                                <span className="apv-no-resume">Not uploaded</span>
+                              )}
+                            </td>
+                            <td className="apv-td-date">
+                              {app.appliedAt ? new Date(app.appliedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                            </td>
+                            <td>
+                              <div className="apv-action-row">
+                                <button
+                                  className="apv-profile-btn"
+                                  onClick={() => setSelectedStudent({ id: app.studentId, name: app.studentName, email: app.studentEmail, applicationStatus: app.status, skills: app.studentSkills })}
+                                >
+                                  <Eye size={13} /> Profile
+                                </button>
                               </div>
-                              <span className="ad-ats-pct">{ats}%</span>
-                            </div>
-                          </td>
-                          <td><StatusBadge status={status} /></td>
-                          <td>
-                            <button
-                              className={`ad-shortlist-btn ${status === 'Shortlisted' ? 'ad-shortlist-active' : ''}`}
-                              onClick={() => handleShortlist(s.id)}
-                            >
-                              <Star size={14} /> {status === 'Shortlisted' ? 'Unshortlist' : 'Shortlist'}
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </div>
+          );
+        }
+
+        // Jobs Grid View
+        return (
+          <div className="ad-content-area apv-jobs-page">
+            <div className="apv-page-header">
+              <div>
+                <h2 className="ad-page-title" style={{ marginBottom: 4 }}>Applications</h2>
+                <p className="apv-page-subtitle">Select a job to review all applicants, resumes, and take action.</p>
+              </div>
+              <input
+                className="ad-search-input"
+                placeholder="Search by company or title..."
+                value={jobSearchQuery}
+                onChange={e => setJobSearchQuery(e.target.value)}
+              />
+            </div>
+
+            {filteredJobs.length === 0 ? (
+              <div className="apv-empty-state" style={{ marginTop: 40 }}>
+                <FileSearch size={56} strokeWidth={1.2} />
+                <h3>No Jobs Found</h3>
+                <p>Try a different search term or post a new job first.</p>
+              </div>
+            ) : (
+              <div className="apv-jobs-grid">
+                {filteredJobs.map(job => {
+                  const themeClass = getJobTheme(job.company);
+                  const skills = job.requirements ? job.requirements.split(',').map(s => s.trim()).filter(Boolean) : [];
+                  const applicantCount = job.applicantsCount ?? job.applicants_count ?? 0;
+
+                  let displayDeadline = job.deadline;
+                  if (job.deadline && job.deadline.includes('-')) {
+                    try {
+                      const parts = job.deadline.split('-');
+                      const d = new Date(parts[0], parts[1] - 1, parts[2]);
+                      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                      displayDeadline = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+                    } catch (err) { }
+                  }
+
+                  return (
+                    <div key={job.id} className={`apv-job-grid-card ${themeClass}`}>
+                      <div className="apv-card-top">
+                        <div className={`apv-card-icon ${themeClass}`}>
+                          <Briefcase size={20} />
+                        </div>
+                        <div className="apv-card-applicant-badge">
+                          <Users size={13} />
+                          <span>{applicantCount} applicant{applicantCount !== 1 ? 's' : ''}</span>
+                        </div>
+                      </div>
+
+                      <h3 className="apv-card-title">{job.title}</h3>
+                      <p className="apv-card-company">
+                        <Building2 size={13} /> {job.company}
+                        {job.location && <><span className="apv-dot">•</span><MapPin size={13} /> {job.location}</>}
+                      </p>
+
+                      {job.salary && (
+                        <p className="apv-card-salary">{job.salary}</p>
+                      )}
+
+                      {skills.length > 0 && (
+                        <div className="apv-card-skills">
+                          {skills.slice(0, 4).map((s, i) => <span key={i} className="apv-skill-chip">{s}</span>)}
+                          {skills.length > 4 && <span className="apv-skill-chip more">+{skills.length - 4}</span>}
+                        </div>
+                      )}
+
+                      <div className="apv-card-meta">
+                        {displayDeadline && (
+                          <span className="apv-meta-item">
+                            <Calendar size={12} /> {displayDeadline}
+                          </span>
+                        )}
+                        {job.jobType && (
+                          <span className="apv-meta-item">
+                            <Clock size={12} /> {job.jobType || job.job_type}
+                          </span>
+                        )}
+                      </div>
+
+                      <button
+                        className="apv-view-applicants-btn"
+                        onClick={() => {
+                          setSelectedJobApplicants(job);
+                          fetchJobApplicants(job.id);
+                          setApplicantsView(true);
+                        }}
+                      >
+                        <Users size={15} /> View Applicants
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         );
 
@@ -994,96 +1248,34 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {selectedJobApplicants && (() => {
-        const applicants = students.filter(s => {
-          const appliedIds = s.appliedJobs || s.applied_jobs || [];
-          return appliedIds.includes(selectedJobApplicants.id);
-        });
-        return (
-          <div className="ad-modal-overlay" onClick={() => setSelectedJobApplicants(null)}>
-            <div className="ad-modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '850px', width: '90%' }}>
-              <div className="ad-modal-header">
-                <div>
-                  <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>Applicants for {selectedJobApplicants.title}</h2>
-                  <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.875rem', fontWeight: 500 }}>{selectedJobApplicants.company} • {applicants.length} Applicant{applicants.length !== 1 ? 's' : ''}</p>
-                </div>
-                <button className="ad-modal-close" onClick={() => setSelectedJobApplicants(null)}><X size={20} /></button>
-              </div>
-
-              <div className="ad-modal-body" style={{ maxHeight: '60vh', overflowY: 'auto', padding: '20px' }}>
-                {applicants.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '40px 20px', color: '#94a3b8' }}>
-                    <Users size={48} style={{ opacity: 0.5, marginBottom: '12px' }} />
-                    <p>No students have applied for this job yet.</p>
-                  </div>
-                ) : (
-                  <div className="ad-table-wrap" style={{ boxShadow: 'none', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-                    <table className="ad-table">
-                      <thead>
-                        <tr>
-                          <th>Student</th>
-                          <th>ATS Score</th>
-                          <th>Skills</th>
-                          <th>Status</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {applicants.map(s => {
-                          const status = s.applicationStatus ?? s.application_status ?? 'Under Review';
-                          const ats = s.atsScore ?? s.ats_score ?? 0;
-                          return (
-                            <tr key={s.id}>
-                              <td>
-                                <div className="ad-student-cell">
-                                  <div className="ad-student-av">{(s.name || s.username || 'S').charAt(0).toUpperCase()}</div>
-                                  <div>
-                                    <p className="ad-student-name">{s.name || s.username}</p>
-                                    <p className="ad-student-email">{s.email}</p>
-                                  </div>
-                                </div>
-                              </td>
-                              <td>
-                                <div className="ad-ats-cell">
-                                  <div className="ad-ats-bar-bg">
-                                    <div className="ad-ats-bar-fill" style={{ width: `${ats}%`, background: ats >= 80 ? '#10b981' : ats >= 60 ? '#f59e0b' : '#ef4444' }} />
-                                  </div>
-                                  <span className="ad-ats-pct">{ats}%</span>
-                                </div>
-                              </td>
-                              <td>
-                                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', maxWidth: '200px' }}>
-                                  {(s.skills || '—').split(',').slice(0, 2).map((skill, idx) => (
-                                    <span key={idx} className="ad-job-skill-tag" style={{ margin: 0, fontSize: '10px', padding: '2px 6px', background: '#f1f5f9', color: '#475569', borderRadius: '4px', fontWeight: 500 }}>{skill.trim()}</span>
-                                  ))}
-                                </div>
-                              </td>
-                              <td><StatusBadge status={status} /></td>
-                              <td>
-                                <div className="ad-action-btns">
-                                  <button
-                                    className={`ad-shortlist-btn ${status === 'Shortlisted' ? 'ad-shortlist-active' : ''}`}
-                                    onClick={() => handleShortlist(s.id)}
-                                  >
-                                    <Star size={14} /> {status === 'Shortlisted' ? 'Unshortlist' : 'Shortlist'}
-                                  </button>
-                                  <button className="ad-view-profile-btn" onClick={() => { setSelectedStudent(s); setSelectedJobApplicants(null); }}>
-                                    <Eye size={14} /> View
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
+      {/* Resume Preview Modal */}
+      {previewResumeUrl && (
+        <div className="ad-modal-overlay" onClick={() => setPreviewResumeUrl(null)}>
+          <div className="ad-modal-content" style={{ maxWidth: '800px', height: '85vh', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff' }}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#1e293b', fontWeight: 800 }}>Resume Preview</h3>
+              <button className="ad-modal-close" style={{ position: 'static' }} onClick={() => setPreviewResumeUrl(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ flex: 1, padding: 0, background: '#f8fafc' }}>
+              <iframe
+                src={`https://docs.google.com/gview?url=${encodeURIComponent(previewResumeUrl)}&embedded=true`}
+                title="Resume Preview"
+                style={{ width: '100%', height: '100%', border: 'none' }}
+              />
+            </div>
+            <div style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', background: '#fff' }}>
+              <a href={previewResumeUrl} target="_blank" rel="noreferrer" className="ad-btn-primary" style={{ padding: '8px 16px', fontSize: '0.85rem', textDecoration: 'none' }}>
+                Open in New Tab
+              </a>
+              <button className="ad-btn-secondary" onClick={() => setPreviewResumeUrl(null)} style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
+                Close
+              </button>
             </div>
           </div>
-        );
-      })()}
+        </div>
+      )}
 
     </div>
   );

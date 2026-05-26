@@ -54,6 +54,20 @@ class Resume(Base):
 
     student = relationship("Student", back_populates="resumes")
 
+class Application(Base):
+    __tablename__ = "applications"
+
+    id = Column(String, primary_key=True, index=True)
+    student_id = Column(String, ForeignKey("students.id"), nullable=False)
+    job_id = Column(String, ForeignKey("jobs.id"), nullable=False)
+    resume_id = Column(String, ForeignKey("resumes.id"), nullable=False)
+    resume_url = Column(String, nullable=False)
+    status = Column(String, default="Applied")
+    applied_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    student = relationship("Student")
+    resume = relationship("Resume")
+
 class Job(Base):
     __tablename__ = "jobs"
 

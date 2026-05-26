@@ -353,27 +353,130 @@ def update_student_profile(student_id: str, updates: schemas.StudentUpdate, db: 
         raise HTTPException(status_code=404, detail="Student profile not found")
     return student
 
-# Shortlist Toggles
+# Shortlist Toggle — per-job
 @app.post("/api/students/shortlist/{student_id}", response_model=schemas.StudentResponse)
-def shortlist_student(student_id: str, db: Session = Depends(get_db)):
+def shortlist_student(student_id: str, job_id: Optional[str] = None, db: Session = Depends(get_db)):
     student = crud.get_student(db, student_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student profile not found")
-    
-    student.application_status = (
-        "Shortlisted" if student.application_status != "Shortlisted" else "Under Review"
-    )
-    db.commit()
+
+    if job_id:
+        # Per-job shortlist: toggle only the specific Application row
+        app_row = db.query(models.Application).filter(
+            models.Application.student_id == student_id,
+            models.Application.job_id == job_id
+        ).first()
+        if app_row:
+            app_row.status = "Shortlisted" if app_row.status != "Shortlisted" else "Applied"
+            db.commit()
+    else:
+        # Legacy global toggle (used from Students table where no job context)
+        new_status = "Shortlisted" if student.application_status != "Shortlisted" else "Under Review"
+        student.application_status = new_status
+        db.query(models.Application).filter(
+            models.Application.student_id == student_id
+        ).update({"status": new_status})
+        db.commit()
+
     db.refresh(student)
     return student
 
-# Job Matchmaking Trigger
-@app.post("/api/applications/apply", response_model=schemas.StudentResponse)
-def apply_job(student_id: str, job_id: str, db: Session = Depends(get_db)):
-    student = crud.apply_to_job(db, student_id, job_id)
+# Per-student application statuses (for student dashboard per-job status)
+@app.get("/api/students/{student_id}/applications")
+def read_student_applications(student_id: str, db: Session = Depends(get_db)):
+    student = crud.get_student(db, student_id)
     if not student:
-        raise HTTPException(status_code=404, detail="Invalid Student ID or Job ID")
+        raise HTTPException(status_code=404, detail="Student profile not found")
+    apps = db.query(models.Application).filter(
+        models.Application.student_id == student_id
+    ).all()
+    return [{"jobId": a.job_id, "status": a.status} for a in apps]
+
+# Update application status directly (Applied / Under Review / Shortlisted / Rejected)
+@app.patch("/api/applications/{application_id}/status")
+def update_application_status(application_id: str, payload: dict, db: Session = Depends(get_db)):
+    app_row = db.query(models.Application).filter(models.Application.id == application_id).first()
+    if not app_row:
+        raise HTTPException(status_code=404, detail="Application not found")
+    new_status = payload.get("status")
+    if not new_status:
+        raise HTTPException(status_code=400, detail="status field required")
+    app_row.status = new_status
+    db.commit()
+    db.refresh(app_row)
+    return {"id": app_row.id, "status": app_row.status}
+
+@app.post("/api/applications/apply", response_model=schemas.StudentResponse)
+def apply_job(student_id: str, job_id: str, resume_id: str, db: Session = Depends(get_db)):
+    student = crud.apply_to_job(db, student_id, job_id, resume_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Invalid Student ID, Job ID, or Resume ID")
     return student
+
+@app.get("/api/jobs/{job_id}/applicants", response_model=List[schemas.ApplicationResponse])
+def read_job_applicants(job_id: str, db: Session = Depends(get_db)):
+    job = crud.get_job(db, job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job opening not found")
+    applications = crud.get_applications_by_job(db, job_id)
+    return [
+        {
+            "id": app.id,
+            "studentId": app.student_id,
+            "jobId": app.job_id,
+            "resumeId": app.resume_id,
+            "resumeName": app.resume.name if app.resume else "",
+            "resumeUrl": app.resume_url or (app.resume.url if app.resume else ""),
+            "status": app.status,
+            "studentName": app.student.name if app.student else "",
+            "studentEmail": app.student.email if app.student else "",
+            "studentCgpa": app.student.cgpa if app.student else "",
+            "studentDepartment": app.student.department if app.student else "",
+            "studentRollNumber": app.student.roll_number if app.student else "",
+            "appliedAt": app.applied_at
+        }
+        for app in applications
+    ]
+
+# Apply with resume upload (allows uploading a resume specifically for this application)
+@app.post("/api/applications/apply-with-resume", response_model=schemas.StudentResponse)
+async def apply_with_resume(
+    student_id: str,
+    job_id: str,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    student = crud.get_student(db, student_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+
+    # Read file bytes and upload to Cloudinary
+    try:
+        file_bytes = await file.read()
+        _, ext = os.path.splitext(file.filename)
+        upload_result = cloudinary.uploader.upload(
+            file_bytes,
+            resource_type="raw",
+            folder="placement_portal/resumes",
+            public_id=f"{student_id}_{uuid.uuid4().hex[:8]}{ext}",
+            overwrite=True,
+            type="upload",
+            access_mode="public"
+        )
+        resume_cloud_url = upload_result.get("secure_url", "")
+    except Exception as e:
+        print(f"Cloudinary upload failed during apply: {e}")
+        resume_cloud_url = ""
+
+    # Create resume record
+    new_resume = crud.create_student_resume(db, student_id, file.filename, resume_cloud_url)
+
+    # Create application using the new resume
+    student_after = crud.create_application(db, student_id, job_id, new_resume.id)
+    if not student_after:
+        raise HTTPException(status_code=404, detail="Invalid Student ID, Job ID, or Resume error")
+
+    return student_after
 
 # Cloudinary PDF Resume Upload
 @app.post("/api/students/{student_id}/resume", response_model=schemas.StudentResponse)

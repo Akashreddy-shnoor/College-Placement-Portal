@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from . import models, schemas
 import uuid
 
@@ -97,11 +98,25 @@ def update_student(db: Session, student_id: str, updates: schemas.StudentUpdate)
     return db_student
 
 # Job CRUD
+def _attach_real_count(db: Session, job: models.Job) -> models.Job:
+    """Attach the real applicant count from the applications table."""
+    real_count = db.query(func.count(models.Application.id)).filter(
+        models.Application.job_id == job.id
+    ).scalar() or 0
+    job.applicants_count = real_count
+    return job
+
 def get_job(db: Session, job_id: str):
-    return db.query(models.Job).filter(models.Job.id == job_id).first()
+    job = db.query(models.Job).filter(models.Job.id == job_id).first()
+    if job:
+        _attach_real_count(db, job)
+    return job
 
 def get_jobs(db: Session):
-    return db.query(models.Job).all()
+    jobs = db.query(models.Job).all()
+    for job in jobs:
+        _attach_real_count(db, job)
+    return jobs
 
 def create_job(db: Session, job: schemas.JobCreate):
     db_job = models.Job(
@@ -147,27 +162,48 @@ def delete_job(db: Session, job_id: str):
         return True
     return False
 
-# Match Application Pipeline
-def apply_to_job(db: Session, student_id: str, job_id: str):
+# Application CRUD
+def get_applications_by_job(db: Session, job_id: str):
+    return db.query(models.Application).filter(models.Application.job_id == job_id).order_by(models.Application.applied_at.desc()).all()
+
+def create_application(db: Session, student_id: str, job_id: str, resume_id: str):
     db_student = get_student(db, student_id)
     db_job = get_job(db, job_id)
-    
-    if db_student and db_job:
-        # Check if already applied
-        current_applied = list(db_student.applied_jobs or [])
-        if job_id not in current_applied:
-            current_applied.append(job_id)
-            db_student.applied_jobs = current_applied
-            
-            # Increment job applicant count
-            db_job.applicants_count = (db_job.applicants_count or 0) + 1
-            
-            # Update student application status if not set
-            if db_student.application_status == "None":
-                db_student.application_status = "Applied"
-                
-            db.commit()
-            db.refresh(db_student)
-            db.refresh(db_job)
+    resume = get_student_resume(db, student_id, resume_id)
+    if not db_student or not db_job or not resume:
+        return None
+
+    existing = db.query(models.Application).filter(
+        models.Application.student_id == student_id,
+        models.Application.job_id == job_id
+    ).first()
+    if existing:
         return db_student
-    return None
+
+    application = models.Application(
+        id="app_" + str(uuid.uuid4())[:8],
+        student_id=student_id,
+        job_id=job_id,
+        resume_id=resume_id,
+        resume_url=resume.url,
+        status="Applied"
+    )
+    db.add(application)
+
+    current_applied = list(db_student.applied_jobs or [])
+    if job_id not in current_applied:
+        current_applied.append(job_id)
+        db_student.applied_jobs = current_applied
+
+    # Count is computed dynamically in get_job/get_jobs, no manual increment needed
+    if db_student.application_status == "None":
+        db_student.application_status = "Applied"
+
+    db.commit()
+    db.refresh(db_student)
+    db.refresh(db_job)
+    return db_student
+
+# Match Application Pipeline
+def apply_to_job(db: Session, student_id: str, job_id: str, resume_id: str):
+    return create_application(db, student_id, job_id, resume_id)

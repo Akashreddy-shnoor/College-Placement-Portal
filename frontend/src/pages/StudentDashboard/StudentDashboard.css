@@ -290,6 +290,7 @@
 .badge-shortlisted { background: rgba(16,185,129,0.12); color: #10b981; }
 .badge-review { background: rgba(245,158,11,0.12); color: #f59e0b; }
 .badge-applied { background: rgba(59,130,246,0.12); color: #3b82f6; }
+.badge-rejected { background: rgba(239,68,68,0.12); color: #ef4444; }
 .badge-none { background: rgba(148,163,184,0.12); color: #94a3b8; }
 
 .sd-ai-panel { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #f8fafc; border-color: rgba(59,130,246,0.2); }
@@ -309,6 +310,25 @@
 .sd-btn-primary:hover { opacity: 0.9; }
 .sd-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 .sd-improve-btn { width: 100%; justify-content: center; margin-top: 4px; }
+
+.sd-apply-resume-banner {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; margin-bottom: 22px; padding: 18px 20px; border: 1px solid #e2e8f0;
+  border-radius: 16px; background: #fff;
+}
+.sd-apply-resume-label { font-size: 0.88rem; font-weight: 700; color: #0f172a; margin: 0 0 6px; }
+.sd-apply-resume-chip {
+  display: inline-flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px;
+  background: #f8fafc; border: 1px solid #e2e8f0;
+}
+.sd-apply-resume-chip span { color: #1e293b; font-weight: 700; }
+.sd-apply-resume-change {
+  background: none; border: none; color: #2563eb; font-weight: 700; cursor: pointer;
+}
+.sd-apply-resume-empty { margin: 0; color: #64748b; }
+.sd-apply-msg { margin: 0; font-size: 0.9rem; font-weight: 700; }
+.sd-apply-msg.success { color: #10b981; }
+.sd-apply-msg.error { color: #ef4444; }
 
 .sd-empty-state {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -988,4 +1008,23 @@
     min-height: 140px;
   }
 }
+
+/* Modal for applying with resume selection or upload */
+.sd-modal-overlay {
+  position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: rgba(2,6,23,0.5); z-index: 5000;
+}
+.sd-modal {
+  width: 680px; max-width: 94%; background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 8px 30px rgba(2,6,23,0.3);
+}
+.sd-modal h3 { margin: 0 0 6px; font-size: 1.05rem; }
+.sd-modal-company { margin: 0 0 12px; color: #64748b; }
+.sd-modal-section { margin-bottom: 12px; }
+.sd-modal-resume-list { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+.sd-modal-resume-item { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:8px; border:1px solid #f1f5f9; }
+.sd-modal-resume-item.selected { border-color:#8b5cf6; background:#f8f7ff; }
+.sd-modal-upload input[type=file] { margin-top:8px; }
+.sd-modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:14px; }
+.sd-btn-secondary { background:#f1f5f9; border:1px solid #e2e8f0; color:#475569; padding:10px 14px; border-radius:10px; font-weight:700; cursor:pointer; }
+.sd-btn-secondary:hover { background:#e8eefc; }
 

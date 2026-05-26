@@ -41,6 +41,7 @@ const StatusBadge = ({ status }) => {
     'Shortlisted': { cls: 'badge-shortlisted', label: 'Shortlisted' },
     'Under Review': { cls: 'badge-review', label: 'Under Review' },
     'Applied': { cls: 'badge-applied', label: 'Applied' },
+    'Rejected': { cls: 'badge-rejected', label: 'Rejected' },
     'None': { cls: 'badge-none', label: 'Not Applied' },
   };
   const { cls, label } = map[status] || map['None'];
@@ -58,10 +59,18 @@ const StudentDashboard = () => {
   const [uploadFile, setUploadFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState('');
+  const [applyMsg, setApplyMsg] = useState('');
+  const [applicationStatuses, setApplicationStatuses] = useState({}); // { job_id: status }
   const [activeResumeId, setActiveResumeId] = useState('');
   const [previewClosed, setPreviewClosed] = useState(false);
   const previewSectionRef = useRef(null);
   const previewIframeRef = useRef(null);
+  const [applyModalOpen, setApplyModalOpen] = useState(false);
+  const [jobToApply, setJobToApply] = useState(null);
+  const [applyOption, setApplyOption] = useState('existing'); // 'existing' or 'upload'
+  const [selectedResumeForApply, setSelectedResumeForApply] = useState('');
+  const [newResumeFileForApply, setNewResumeFileForApply] = useState(null);
+  const [applying, setApplying] = useState(false);
 
   const initProfile = (u) => ({
     username: u?.username || '',
@@ -107,6 +116,18 @@ const StudentDashboard = () => {
     }
   };
 
+  const fetchApplicationStatuses = async (studentId) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/students/${studentId}/applications`);
+      if (res.ok) {
+        const apps = await res.json();
+        const map = {};
+        apps.forEach(a => { map[a.jobId] = a.status; });
+        setApplicationStatuses(map);
+      }
+    } catch (e) { console.error(e); }
+  };
+
   const fetchData = async (studentId) => {
     try {
       const jobsRes = await fetch(`${API_BASE_URL}/api/jobs`);
@@ -117,6 +138,7 @@ const StudentDashboard = () => {
         setAllStudents(studs);
       }
       await fetchStudent(studentId);
+      await fetchApplicationStatuses(studentId);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
@@ -135,6 +157,76 @@ const StudentDashboard = () => {
   const handleClosePreview = () => {
     setPreviewClosed(true);
     setActiveResumeId('');
+  };
+
+  const openApplyModal = (job) => {
+    setJobToApply(job);
+    setApplyOption('existing');
+    setSelectedResumeForApply(activeResumeId || (student?.resumes?.[0]?.id || ''));
+    setNewResumeFileForApply(null);
+    setApplyModalOpen(true);
+    setApplyMsg('');
+  };
+
+  const closeApplyModal = () => {
+    setApplyModalOpen(false);
+    setJobToApply(null);
+    setApplying(false);
+  };
+
+  const handleFileChangeForApply = (e) => {
+    if (e.target.files && e.target.files[0]) setNewResumeFileForApply(e.target.files[0]);
+  };
+
+  const submitApplicationFromModal = async () => {
+    if (!student?.id || !jobToApply) return;
+    setApplying(true);
+    try {
+      if (applyOption === 'upload') {
+        if (!newResumeFileForApply) {
+          setApplyMsg('Please choose a file to upload.');
+          setApplying(false);
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', newResumeFileForApply);
+        const res = await fetch(`${API_BASE_URL}/api/applications/apply-with-resume?student_id=${student.id}&job_id=${jobToApply.id}`, {
+          method: 'POST',
+          body: formData
+        });
+        if (res.ok) {
+          await fetchStudent(student.id);
+          await fetchApplicationStatuses(student.id);
+          setApplyMsg('✅ Applied successfully with uploaded resume.');
+          closeApplyModal();
+        } else {
+          const data = await res.json().catch(() => ({}));
+          setApplyMsg(data.detail ? `❌ ${data.detail}` : '❌ Failed to apply with uploaded resume.');
+        }
+      } else {
+        const resumeId = selectedResumeForApply || activeResumeId || (student?.resumes?.[0]?.id);
+        if (!resumeId) {
+          setApplyMsg('Please select one of your uploaded resumes or upload a new one.');
+          setApplying(false);
+          return;
+        }
+        const res = await fetch(`${API_BASE_URL}/api/applications/apply?student_id=${student.id}&job_id=${jobToApply.id}&resume_id=${resumeId}`, { method: 'POST' });
+        if (res.ok) {
+          await fetchStudent(student.id);
+          await fetchApplicationStatuses(student.id);
+          setApplyMsg('✅ Applied successfully with selected resume.');
+          closeApplyModal();
+        } else {
+          const data = await res.json().catch(() => ({}));
+          setApplyMsg(data.detail ? `❌ ${data.detail}` : '❌ Failed to apply for the job.');
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      setApplyMsg('❌ Server error. Please try again.');
+    }
+    setApplying(false);
   };
 
   const handleFullscreenPreview = () => {
@@ -170,15 +262,27 @@ const StudentDashboard = () => {
 
   const handleApplyJob = async (jobId) => {
     if (!student?.id) return;
+    if (!activeResumeId) {
+      setApplyMsg('Please select a resume before applying.');
+      return;
+    }
+    setApplyMsg('');
     try {
-      const res = await fetch(`${API_BASE_URL}/api/applications/apply?student_id=${student.id}&job_id=${jobId}`, { method: 'POST' });
+      const res = await fetch(`${API_BASE_URL}/api/applications/apply?student_id=${student.id}&job_id=${jobId}&resume_id=${activeResumeId}`, { method: 'POST' });
       if (res.ok) {
         const updated = await res.json();
         const newUser = { ...student, ...updated };
         localStorage.setItem('cpp_current_user', JSON.stringify(newUser));
         setStudent(newUser);
+        setApplyMsg('✅ Applied successfully with selected resume.');
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setApplyMsg(data.detail ? `❌ ${data.detail}` : '❌ Failed to apply for the job.');
       }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+      setApplyMsg('❌ Server error. Please try again.');
+    }
   };
 
   const handleResumeUpload = async (e) => {
@@ -243,7 +347,7 @@ const StudentDashboard = () => {
 
   const recentApps = jobs.filter(j => appliedJobs.includes(j.id)).slice(0, 3);
   const recommendedJobs = jobs.filter(j => !appliedJobs.includes(j.id)).slice(0, 3);
-  const shortlistedCount = appStatus === 'Shortlisted' ? 1 : 0;
+  const shortlistedCount = Object.values(applicationStatuses).filter(s => s === 'Shortlisted').length;
 
   const renderContent = () => {
     switch (activeNav) {
@@ -337,7 +441,7 @@ const StudentDashboard = () => {
                           <p className="sd-app-title">{job.title}</p>
                           <p className="sd-app-company">{job.company}</p>
                         </div>
-                        <StatusBadge status={appStatus} />
+                        <StatusBadge status={applicationStatuses[job.id] || 'Applied'} />
                       </div>
                     ))}
                   </div>
@@ -360,7 +464,7 @@ const StudentDashboard = () => {
                           <p className="sd-app-title">{job.title}</p>
                           <p className="sd-app-company">{job.company} · {job.salary}</p>
                         </div>
-                        <button className="sd-apply-btn" onClick={() => handleApplyJob(job.id)}>Apply Now</button>
+                        <button className="sd-apply-btn" onClick={() => openApplyModal(job)}>Apply Now</button>
                       </div>
                     ))}
                   </div>
@@ -673,7 +777,7 @@ const StudentDashboard = () => {
                       <div className="sd-preview-embed-wrap">
                         <iframe
                           ref={previewIframeRef}
-                          src={resumeUrl}
+                          src={`https://docs.google.com/gview?url=${encodeURIComponent(resumeUrl)}&embedded=true`}
                           title="Resume Preview"
                           className="sd-preview-iframe"
                           style={{ border: 'none', width: '100%', height: '100%' }}
@@ -734,6 +838,7 @@ const StudentDashboard = () => {
         return (
           <div className="sd-content-area">
             <h2 className="sd-page-title">Job Openings</h2>
+            {applyMsg && <p className={`sd-apply-msg ${applyMsg.includes('✅') ? 'success' : 'error'}`}>{applyMsg}</p>}
             {jobs.length === 0 ? (
               <div className="sd-empty-state"><Briefcase size={48} /><p>No job openings at the moment.</p></div>
             ) : (
@@ -818,7 +923,13 @@ const StudentDashboard = () => {
                         {appliedJobs.includes(job.id) ? (
                           <button className="sd-applied-btn" style={{ width: '100%', cursor: 'not-allowed' }} disabled>✓ Applied</button>
                         ) : (
-                          <button className="sd-btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => handleApplyJob(job.id)}>Apply Now →</button>
+                          <button
+                            className="sd-btn-primary"
+                            style={{ width: '100%', justifyContent: 'center' }}
+                            onClick={() => openApplyModal(job)}
+                          >
+                            Apply Now →
+                          </button>
                         )}
                       </div>
                     </div>
@@ -846,7 +957,7 @@ const StudentDashboard = () => {
                       <p>{job.company} · {job.location}</p>
                       <p className="sd-applied-req">{job.requirements}</p>
                     </div>
-                    <StatusBadge status={appStatus} />
+                    <StatusBadge status={applicationStatuses[job.id] || 'Applied'} />
                   </div>
                 ))}
               </div>
@@ -854,21 +965,31 @@ const StudentDashboard = () => {
           </div>
         );
 
-      case 'shortlisted':
+      case 'shortlisted': {
+        const shortlistedJobs = jobs.filter(j => applicationStatuses[j.id] === 'Shortlisted');
         return (
           <div className="sd-content-area">
             <h2 className="sd-page-title">Shortlisted</h2>
-            {appStatus !== 'Shortlisted' ? (
+            {shortlistedJobs.length === 0 ? (
               <div className="sd-empty-state"><Star size={48} /><p>You haven't been shortlisted yet. Keep applying!</p></div>
             ) : (
-              <div className="sd-shortlist-card">
-                <Star size={32} className="sd-shortlist-star" />
-                <h3>Congratulations! 🎉</h3>
-                <p>You have been shortlisted. The recruiter will contact you soon.</p>
+              <div className="sd-applied-list">
+                {shortlistedJobs.map(job => (
+                  <div className="sd-applied-card" key={job.id}>
+                    <div className="sd-applied-icon"><Briefcase size={20} /></div>
+                    <div className="sd-applied-info">
+                      <h4>{job.title}</h4>
+                      <p>{job.company} · {job.location}</p>
+                      <p className="sd-applied-req">{job.requirements}</p>
+                    </div>
+                    <StatusBadge status="Shortlisted" />
+                  </div>
+                ))}
               </div>
             )}
           </div>
         );
+      }
 
       case 'tips':
         const tips = [
@@ -946,6 +1067,52 @@ const StudentDashboard = () => {
       </aside>
 
       {sidebarOpen && <div className="sd-overlay" onClick={() => setSidebarOpen(false)} />}
+      {applyModalOpen && (
+        <div className="sd-modal-overlay">
+          <div className="sd-modal">
+            <h3>Apply for: {jobToApply?.title}</h3>
+            <p className="sd-modal-company">{jobToApply?.company} • {jobToApply?.location}</p>
+
+            <div className="sd-modal-section">
+              <label>
+                <input type="radio" name="applyOption" checked={applyOption === 'existing'} onChange={() => setApplyOption('existing')} /> Use one of my uploaded resumes
+              </label>
+              {applyOption === 'existing' && (
+                <div className="sd-modal-resume-list">
+                  {student?.resumes?.length ? (
+                    student.resumes.map(r => (
+                      <label key={r.id} className={`sd-modal-resume-item ${selectedResumeForApply === r.id ? 'selected' : ''}`}>
+                        <input type="radio" name="selectedResume" checked={selectedResumeForApply === r.id} onChange={() => setSelectedResumeForApply(r.id)} /> {r.name}
+                      </label>
+                    ))
+                  ) : (
+                    <p>No uploaded resumes. Choose Upload below to add one.</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="sd-modal-section">
+              <label>
+                <input type="radio" name="applyOption" checked={applyOption === 'upload'} onChange={() => setApplyOption('upload')} /> Upload a new resume for this application
+              </label>
+              {applyOption === 'upload' && (
+                <div className="sd-modal-upload">
+                  <input type="file" accept=".pdf,.docx" onChange={handleFileChangeForApply} />
+                  {newResumeFileForApply && <p>Selected: {newResumeFileForApply.name}</p>}
+                </div>
+              )}
+            </div>
+
+            {applyMsg && <p className={`sd-apply-msg ${applyMsg.includes('✅') ? 'success' : 'error'}`}>{applyMsg}</p>}
+
+            <div className="sd-modal-actions">
+              <button className="sd-btn-primary" onClick={submitApplicationFromModal} disabled={applying}>{applying ? 'Applying...' : 'Submit Application'}</button>
+              <button className="sd-btn-secondary" onClick={closeApplyModal}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="sd-main">
 
