@@ -85,7 +85,7 @@ const StudentDashboard = () => {
     backlogs: u?.backlogs || 0,
     projects: u?.projects || [], certifications: u?.certifications || [], internships: u?.internships || []
   });
-  
+
   const [profileForm, setProfileForm] = useState(initProfile(null));
   const [profileMsg, setProfileMsg] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -464,7 +464,7 @@ const StudentDashboard = () => {
                           <p className="sd-app-title">{job.title}</p>
                           <p className="sd-app-company">{job.company} · {job.salary}</p>
                         </div>
-                        <button className="sd-apply-btn" onClick={() => openApplyModal(job)}>Apply Now</button>
+                        <button className="sd-apply-btn" onClick={() => openApplyModal(job)}>View Job</button>
                       </div>
                     ))}
                   </div>
@@ -648,17 +648,17 @@ const StudentDashboard = () => {
 
             {isEditing && (
               <div className="sd-profile-actions-bottom" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px', padding: '16px 20px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                <button 
-                  type="button" 
-                  className="sd-btn-secondary" 
+                <button
+                  type="button"
+                  className="sd-btn-secondary"
                   style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#475569', padding: '10px 20px', borderRadius: '8px', fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                   onClick={() => { setProfileForm(initProfile(student)); setIsEditing(false); }}
                 >
                   Cancel
                 </button>
-                <button 
-                  type="button" 
-                  className="sd-btn-primary" 
+                <button
+                  type="button"
+                  className="sd-btn-primary"
                   onClick={handleSaveProfile}
                 >
                   Save Changes
@@ -712,7 +712,7 @@ const StudentDashboard = () => {
                         onChange={e => { if (e.target.files[0]) { setUploadFile(e.target.files[0]); setUploadMsg(''); } }}
                       />
                     </label>
-                    <p className="sd-dropzone-formats">Supported formats: PDF, DOCX<br/>Max file size: 5MB</p>
+                    <p className="sd-dropzone-formats">Supported formats: PDF, DOCX<br />Max file size: 5MB</p>
                     {uploadMsg && <p className={`sd-upload-msg ${uploadMsg.includes('✅') ? 'success' : 'error'}`}>{uploadMsg}</p>}
                     <button type="submit" className="sd-btn-primary sd-upload-submit-btn" disabled={!uploadFile || uploading}>
                       {uploading ? <><div className="sd-btn-spinner"></div> Uploading...</> : <><Upload size={16} /> Upload Resume</>}
@@ -863,7 +863,7 @@ const StudentDashboard = () => {
                       const d = new Date(parts[0], parts[1] - 1, parts[2]);
                       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
                       displayDeadline = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-                    } catch(err){}
+                    } catch (err) { }
                   }
 
                   return (
@@ -884,40 +884,7 @@ const StudentDashboard = () => {
                         </div>
                       </div>
 
-                      {job.description && (
-                        <p className="ad-job-card-desc" style={{ flexGrow: 1 }}>{job.description}</p>
-                      )}
 
-                      {skills.length > 0 && (
-                        <div className="ad-job-card-skills">
-                          {skills.map((skill, idx) => (
-                            <span key={idx} className="ad-job-skill-tag">{skill}</span>
-                          ))}
-                        </div>
-                      )}
-
-                      <div className="ad-job-card-meta-grid" style={{ marginBottom: '16px' }}>
-                        <div className="ad-job-meta-item">
-                          <span className="ad-job-meta-label">Min CGPA</span>
-                          <span className="ad-job-meta-val">{job.minCgpa || job.min_cgpa || '—'}</span>
-                        </div>
-                        <div className="ad-job-meta-item">
-                          <span className="ad-job-meta-label">Branches</span>
-                          <span className="ad-job-meta-val">{job.allowedBranches || job.allowed_branches || '—'}</span>
-                        </div>
-                        <div className="ad-job-meta-item">
-                          <span className="ad-job-meta-label">Passout Year</span>
-                          <span className="ad-job-meta-val">{job.passoutYear || job.passout_year || '—'}</span>
-                        </div>
-                        <div className="ad-job-meta-item">
-                          <span className="ad-job-meta-label">Deadline</span>
-                          <span className="ad-job-meta-val">{displayDeadline || '—'}</span>
-                        </div>
-                        <div className="ad-job-meta-item">
-                          <span className="ad-job-meta-label">Backlogs</span>
-                          <span className="ad-job-meta-val">{job.backlogs || '—'}</span>
-                        </div>
-                      </div>
 
                       <div style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px dashed #e2e8f0' }}>
                         {appliedJobs.includes(job.id) ? (
@@ -928,7 +895,7 @@ const StudentDashboard = () => {
                             style={{ width: '100%', justifyContent: 'center' }}
                             onClick={() => openApplyModal(job)}
                           >
-                            Apply Now →
+                            View Job →
                           </button>
                         )}
                       </div>
@@ -1069,47 +1036,95 @@ const StudentDashboard = () => {
       {sidebarOpen && <div className="sd-overlay" onClick={() => setSidebarOpen(false)} />}
       {applyModalOpen && (
         <div className="sd-modal-overlay">
-          <div className="sd-modal">
-            <h3>Apply for: {jobToApply?.title}</h3>
-            <p className="sd-modal-company">{jobToApply?.company} • {jobToApply?.location}</p>
+          <div className="sd-modal" style={{ maxWidth: '650px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h3 style={{ marginBottom: '4px' }}>{jobToApply?.title}</h3>
+                <p className="sd-modal-company" style={{ marginTop: 0 }}>{jobToApply?.company} • {jobToApply?.location}</p>
+              </div>
+              <button onClick={closeApplyModal} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
+            </div>
 
-            <div className="sd-modal-section">
-              <label>
-                <input type="radio" name="applyOption" checked={applyOption === 'existing'} onChange={() => setApplyOption('existing')} /> Use one of my uploaded resumes
-              </label>
-              {applyOption === 'existing' && (
-                <div className="sd-modal-resume-list">
-                  {student?.resumes?.length ? (
-                    student.resumes.map(r => (
-                      <label key={r.id} className={`sd-modal-resume-item ${selectedResumeForApply === r.id ? 'selected' : ''}`}>
-                        <input type="radio" name="selectedResume" checked={selectedResumeForApply === r.id} onChange={() => setSelectedResumeForApply(r.id)} /> {r.name}
-                      </label>
-                    ))
-                  ) : (
-                    <p>No uploaded resumes. Choose Upload below to add one.</p>
+            <div className="sd-job-details-section" style={{ marginTop: '16px', marginBottom: '20px', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '8px', textAlign: 'left', fontSize: '0.95rem', color: '#334155' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                <div><strong style={{ color: '#0f172a' }}>Salary:</strong> {jobToApply?.salary || '—'}</div>
+                <div><strong style={{ color: '#0f172a' }}>Deadline:</strong> {jobToApply?.deadline || '—'}</div>
+                <div><strong style={{ color: '#0f172a' }}>Min CGPA:</strong> {jobToApply?.minCgpa || jobToApply?.min_cgpa || '—'}</div>
+                <div><strong style={{ color: '#0f172a' }}>Branches:</strong> {jobToApply?.allowedBranches || jobToApply?.allowed_branches || '—'}</div>
+              </div>
+              {jobToApply?.description && (
+                <div style={{ marginBottom: '16px' }}>
+                  <strong style={{ color: '#0f172a' }}>Job Description:</strong>
+                  <p style={{ margin: '4px 0 0 0', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>{jobToApply?.description}</p>
+                </div>
+              )}
+              {jobToApply?.requirements && (
+                <div>
+                  <strong style={{ color: '#0f172a' }}>Requirements & Skills:</strong>
+                  <p style={{ margin: '4px 0 0 0', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>{jobToApply?.requirements}</p>
+                </div>
+              )}
+            </div>
+
+            {(() => {
+              const studentCgpa = parseFloat(student?.cgpa || student?.currentCgpa || student?.current_cgpa || 0);
+              const minCgpa = parseFloat(jobToApply?.minCgpa || jobToApply?.min_cgpa || 0);
+              const isEligible = !minCgpa || studentCgpa >= minCgpa;
+
+              return (
+                <>
+                  <div style={{ padding: '14px', borderRadius: '8px', marginBottom: '24px', backgroundColor: isEligible ? '#dcfce7' : '#fee2e2', color: isEligible ? '#166534' : '#991b1b', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {isEligible ? <CheckCircle size={20} /> : <X size={20} />}
+                    {isEligible ? "You are eligible for this job" : "You are not eligible for this job (Minimum CGPA requirement not met)"}
+                  </div>
+
+                  {isEligible && (
+                    <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>
+                      <h4 style={{ marginBottom: '12px', textAlign: 'left', color: '#0f172a' }}>Submit Application</h4>
+                      <div className="sd-modal-section" style={{ textAlign: 'left', marginBottom: '16px' }}>
+                        <label style={{ fontWeight: '600', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                          <input type="radio" name="applyOption" checked={applyOption === 'existing'} onChange={() => setApplyOption('existing')} /> Use one of my uploaded resumes
+                        </label>
+                        {applyOption === 'existing' && (
+                          <div className="sd-modal-resume-list" style={{ marginLeft: '24px' }}>
+                            {student?.resumes?.length ? (
+                              student.resumes.map(r => (
+                                <label key={r.id} className={`sd-modal-resume-item ${selectedResumeForApply === r.id ? 'selected' : ''}`} style={{ display: 'block', margin: '6px 0', cursor: 'pointer' }}>
+                                  <input type="radio" name="selectedResume" checked={selectedResumeForApply === r.id} onChange={() => setSelectedResumeForApply(r.id)} style={{ marginRight: '8px' }} /> {r.name}
+                                </label>
+                              ))
+                            ) : (
+                              <p style={{ color: '#64748b', margin: '4px 0' }}>No uploaded resumes. Please upload a new one below.</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="sd-modal-section" style={{ textAlign: 'left' }}>
+                        <label style={{ fontWeight: '600', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                          <input type="radio" name="applyOption" checked={applyOption === 'upload'} onChange={() => setApplyOption('upload')} /> Upload a new resume for this application
+                        </label>
+                        {applyOption === 'upload' && (
+                          <div className="sd-modal-upload" style={{ marginLeft: '24px' }}>
+                            <input type="file" accept=".pdf,.docx" onChange={handleFileChangeForApply} style={{ marginTop: '4px' }} />
+                            {newResumeFileForApply && <p style={{ marginTop: '8px', fontSize: '0.85rem', color: '#334155' }}>Selected: {newResumeFileForApply.name}</p>}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   )}
-                </div>
-              )}
-            </div>
 
-            <div className="sd-modal-section">
-              <label>
-                <input type="radio" name="applyOption" checked={applyOption === 'upload'} onChange={() => setApplyOption('upload')} /> Upload a new resume for this application
-              </label>
-              {applyOption === 'upload' && (
-                <div className="sd-modal-upload">
-                  <input type="file" accept=".pdf,.docx" onChange={handleFileChangeForApply} />
-                  {newResumeFileForApply && <p>Selected: {newResumeFileForApply.name}</p>}
-                </div>
-              )}
-            </div>
+                  {applyMsg && <p className={`sd-apply-msg ${applyMsg.includes('✅') ? 'success' : 'error'}`} style={{ marginTop: '16px' }}>{applyMsg}</p>}
 
-            {applyMsg && <p className={`sd-apply-msg ${applyMsg.includes('✅') ? 'success' : 'error'}`}>{applyMsg}</p>}
-
-            <div className="sd-modal-actions">
-              <button className="sd-btn-primary" onClick={submitApplicationFromModal} disabled={applying}>{applying ? 'Applying...' : 'Submit Application'}</button>
-              <button className="sd-btn-secondary" onClick={closeApplyModal}>Cancel</button>
-            </div>
+                  <div className="sd-modal-actions" style={{ marginTop: '24px', display: 'flex', gap: '12px', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>
+                    <button className="sd-btn-secondary" onClick={closeApplyModal} style={{ padding: '10px 24px' }}>Cancel</button>
+                    <button className="sd-btn-primary" onClick={submitApplicationFromModal} disabled={!isEligible || applying} style={{ padding: '10px 24px', opacity: (!isEligible || applying) ? 0.6 : 1 }}>
+                      {applying ? 'Applying...' : (isEligible ? 'Submit Application' : 'Not Eligible')}
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}
