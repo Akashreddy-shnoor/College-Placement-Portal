@@ -42,7 +42,7 @@ class Student(Base):
     application_status = Column(String, default="None") # None, Applied, Under Review, Shortlisted
 
     resumes = relationship("Resume", back_populates="student", cascade="all, delete-orphan", order_by="desc(Resume.uploaded_at)")
-
+    offers = relationship("Offer", back_populates="student", cascade="all, delete-orphan", order_by="desc(Offer.offer_date)")
 class Resume(Base):
     __tablename__ = "resumes"
 
@@ -88,3 +88,18 @@ class Job(Base):
     backlogs = Column(String, default="No Backlogs")
     job_type = Column(String, default="Full-time")
     status = Column(String, default="Open")
+
+class Offer(Base):
+    __tablename__ = "offers"
+
+    id = Column(String, primary_key=True, index=True)
+    student_id = Column(String, ForeignKey("students.id"), nullable=False)
+    job_id = Column(String, ForeignKey("jobs.id"), nullable=False)
+    company = Column(String, nullable=False)
+    location = Column(String, default="")
+    job_role = Column(String, nullable=False)
+    package = Column(String, nullable=False)
+    offer_date = Column(DateTime(timezone=True), server_default=func.now())
+
+    student = relationship("Student", back_populates="offers")
+    job = relationship("Job")

@@ -45,6 +45,7 @@ const MONTHLY_DATA = [
 const StatusBadge = ({ status }) => {
   const map = {
     'Shortlisted': { cls: 'ad-badge-shortlisted', label: 'Shortlisted' },
+    'Selected': { cls: 'ad-badge-shortlisted', label: 'Selected' },
     'Under Review': { cls: 'ad-badge-review', label: 'Under Review' },
     'Applied': { cls: 'ad-badge-applied', label: 'Applied' },
     'Rejected': { cls: 'ad-badge-rejected', label: 'Rejected' },
@@ -821,6 +822,7 @@ const AdminDashboard = () => {
                           'Applied': '#3b82f6',
                           'Under Review': '#f59e0b',
                           'Shortlisted': '#10b981',
+                          'Selected': '#8b5cf6',
                           'Rejected': '#ef4444'
                         }[status] || '#94a3b8';
                         return (
@@ -845,6 +847,7 @@ const AdminDashboard = () => {
                                 <option value="Applied">Applied</option>
                                 <option value="Under Review">Under Review</option>
                                 <option value="Shortlisted">Shortlisted</option>
+                                <option value="Selected">Selected</option>
                                 <option value="Rejected">Rejected</option>
                               </select>
                             </td>

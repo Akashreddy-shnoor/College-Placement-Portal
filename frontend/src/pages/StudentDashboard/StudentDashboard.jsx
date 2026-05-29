@@ -4,7 +4,7 @@ import {
   LayoutDashboard, User, Upload, BarChart2, Briefcase, ClipboardList,
   Star, FileText, MessageSquare, Settings, LogOut, Bell, ChevronDown,
   ArrowRight, CheckCircle, TrendingUp, Users, GraduationCap, Sparkles, Menu, X,
-  Download, Eye, MoreVertical, CloudUpload, Maximize2, Minus, Plus, Trash2
+  Download, Eye, MoreVertical, CloudUpload, Maximize2, Minus, Plus, Trash2, MapPin
 } from 'lucide-react';
 import { API_BASE_URL } from '../../config';
 import './StudentDashboard.css';
@@ -83,7 +83,8 @@ const StudentDashboard = () => {
     academicInter: u?.academicInter || u?.academic_inter || '',
     currentCgpa: u?.currentCgpa || u?.current_cgpa || '',
     backlogs: u?.backlogs || 0,
-    projects: u?.projects || [], certifications: u?.certifications || [], internships: u?.internships || []
+    projects: u?.projects || [], certifications: u?.certifications || [], internships: u?.internships || [],
+    offers: u?.offers || []
   });
 
   const [profileForm, setProfileForm] = useState(initProfile(null));
@@ -642,6 +643,40 @@ const StudentDashboard = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+
+              <div className="sd-profile-section">
+                <div className="sd-section-header-flex">
+                  <h3>7. Job Offers</h3>
+                </div>
+                {profileForm.offers.length === 0 ? (
+                  <p style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>No offers yet. Keep applying!</p>
+                ) : (
+                  <div className="sd-offers-grid" style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', marginTop: '12px' }}>
+                    {profileForm.offers.map((offer, i) => {
+                      const offerDate = offer.offerDate || offer.offer_date;
+                      let displayDate = offerDate;
+                      if (offerDate) {
+                        try {
+                          displayDate = new Date(offerDate).toLocaleDateString();
+                        } catch (e) { }
+                      }
+                      return (
+                        <div key={offer.id || i} style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: 'linear-gradient(to bottom right, #f8fafc, #ffffff)', position: 'relative', overflow: 'hidden' }}>
+                          <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', backgroundColor: '#10b981' }} />
+                          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '6px 12px', fontSize: '0.9rem', color: '#334155' }}>
+                            <strong style={{ color: '#0f172a' }}>Company Name:</strong> <span>{offer.company}</span>
+                            <strong style={{ color: '#0f172a' }}>Job Role:</strong> <span>{offer.jobRole || offer.job_role}</span>
+                            <strong style={{ color: '#0f172a' }}>Package:</strong> <span>{offer.package}</span>
+                            <strong style={{ color: '#0f172a' }}>Location:</strong> <span>{offer.location || '—'}</span>
+                            <strong style={{ color: '#0f172a' }}>Offer Date:</strong> <span>{displayDate}</span>
+                            <strong style={{ color: '#0f172a' }}>Status:</strong> <span style={{ color: '#8b5cf6', fontWeight: 'bold' }}>Selected</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
             </div>

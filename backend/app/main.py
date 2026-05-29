@@ -75,6 +75,13 @@ def auto_migrate(db: Session):
             db.commit()
         except Exception:
             db.rollback()
+            
+    # Offers table migration
+    try:
+        db.execute(text("ALTER TABLE offers ADD COLUMN location VARCHAR DEFAULT ''"))
+        db.commit()
+    except Exception:
+        db.rollback()
 
 @app.on_event("startup")
 def prepopulate_db():
@@ -401,7 +408,30 @@ def update_application_status(application_id: str, payload: dict, db: Session = 
     new_status = payload.get("status")
     if not new_status:
         raise HTTPException(status_code=400, detail="status field required")
+        
+    old_status = app_row.status
     app_row.status = new_status
+    
+    if new_status == "Selected" and old_status != "Selected":
+        job = db.query(models.Job).filter(models.Job.id == app_row.job_id).first()
+        if job:
+            offer_exists = db.query(models.Offer).filter(
+                models.Offer.student_id == app_row.student_id,
+                models.Offer.job_id == app_row.job_id
+            ).first()
+            if not offer_exists:
+                import uuid
+                new_offer = models.Offer(
+                    id="off_" + str(uuid.uuid4())[:8],
+                    student_id=app_row.student_id,
+                    job_id=app_row.job_id,
+                    company=job.company,
+                    location=job.location,
+                    job_role=job.title,
+                    package=job.salary or "Not Specified"
+                )
+                db.add(new_offer)
+                
     db.commit()
     db.refresh(app_row)
     return {"id": app_row.id, "status": app_row.status}

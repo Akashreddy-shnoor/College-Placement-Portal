@@ -75,12 +75,22 @@ class ResumeResponse(CamelModel):
     url: str = Field("", alias="url")
     uploaded_at: Optional[datetime] = Field(None, alias="uploadedAt")
 
+class OfferResponse(CamelModel):
+    id: str
+    job_id: str = Field(..., alias="jobId")
+    company: str
+    location: Optional[str] = ""
+    job_role: str = Field(..., alias="jobRole")
+    package: str
+    offer_date: Optional[datetime] = Field(None, alias="offerDate")
+
 class StudentResponse(StudentBase):
     id: str
     ats_score: int = Field(0, alias="atsScore")
     resume_name: str = Field("", alias="resumeName")
     resume_url: Optional[str] = Field("", alias="resumeUrl")
     resumes: List[ResumeResponse] = Field(default_factory=list)
+    offers: List[OfferResponse] = Field(default_factory=list)
     suggestions: List[str] = Field(default_factory=list)
     applied_jobs: List[str] = Field(default_factory=list, alias="appliedJobs")
     application_status: str = Field("None", alias="applicationStatus")
